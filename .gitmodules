@@ -1,0 +1,3 @@
+[submodule "deps/Rack"]
+	path = deps/Rack
+	url = https://github.com/VCVRack/Rack.git
