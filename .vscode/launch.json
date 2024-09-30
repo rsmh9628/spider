@@ -5,10 +5,10 @@
             "name": "(gdb) Launch VCV Rack",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/deps/Rack/Rack",
+            "program": "${workspaceFolder}/../../Rack",
             "args": ["-d"],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/deps/Rack",
+            "cwd": "${workspaceFolder}/../../",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
@@ -20,7 +20,7 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "Build and install plugin"
+            "preLaunchTask": "Build plugin",
         }
     ]
 }

@@ -4,47 +4,44 @@
       {
         "label": "Build VCV Rack",
         "type": "shell",
+        "command": "make -j24 dep && make -j24",
+        "options": {
+          "cwd": "${workspaceRoot}/../../"
+        },
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "presentation": {
+          "echo": true,
+          "reveal": "always",
+          "focus": false,
+          "panel": "shared"
+        },
+        "problemMatcher": {
+          "owner": "cpp",
+          "fileLocation": [
+            "absolute"
+          ],
+          "pattern": {
+            "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+            "file": 1,
+            "line": 2,
+            "column": 3,
+            "severity": 4,
+            "message": 5
+          }
+        },
+      },
+      {
+        "label": "Build plugin",
+        "type": "shell",
         "command": "make -j24",
         "options": {
-          "cwd": "${workspaceRoot}/deps/Rack"
-        },
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        },
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        },
-        "problemMatcher": {
-          "owner": "cpp",
-          "fileLocation": [
-            "absolute"
-          ],
-          "pattern": {
-            "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-            "file": 1,
-            "line": 2,
-            "column": 3,
-            "severity": 4,
-            "message": 5
-          }
-        },
-        "dependsOn": [
-          "Create build directory"
-        ]
-      },
-      {
-        "label": "Build plugin dist",
-        "type": "shell",
-        "command": "make -j24 && make dist",
-        "options": {
           "cwd": "${workspaceRoot}",
           "env": {
-            "RACK_DIR": "${workspaceRoot}/deps/Rack",
-            "RACK_USER_DIR": "${workspaceRoot}/deps/Rack"
+            "RACK_DIR": "${workspaceRoot}/../../",
+            "RACK_USER_DIR": "${workspaceRoot}/../../"
           }
         },
         "group": {
@@ -73,53 +70,6 @@
         },
         "dependsOn": [
           "Build VCV Rack"
-        ]
-      },
-      {
-        "label": "Install plugin",
-        "type": "shell",
-        "command": "mkdir -p ${workspaceRoot}/deps/Rack/plugins && cp -r ${workspaceRoot}/dist/*.vcvplugin ${workspaceRoot}/deps/Rack/plugins/",
-        "options": {
-          "cwd": "${workspaceRoot}",
-          "env": {
-            "RACK_DIR": "${workspaceRoot}/deps/Rack",
-            "RACK_USER_DIR": "${workspaceRoot}/deps/Rack"
-          }
-        },
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        },
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        },
-        "problemMatcher": {
-          "owner": "cpp",
-          "fileLocation": [
-            "absolute"
-          ],
-          "pattern": {
-            "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-            "file": 1,
-            "line": 2,
-            "column": 3,
-            "severity": 4,
-            "message": 5
-          }
-        },
-        "dependsOn": [
-          "Build VCV Rack"
-        ]
-      },
-      {
-        "label": "Build and install plugin",
-        "dependsOrder": "sequence",
-        "dependsOn": [
-          "Build plugin dist",
-          "Install plugin"
         ]
       },
       {
@@ -129,7 +79,7 @@
         "options": {
           "cwd": "${workspaceRoot}",
           "env": {
-            "RACK_DIR": "${workspaceRoot}/deps/Rack"
+            "RACK_DIR": "${workspaceRoot}/../../"
           }
         },
         "group": {
@@ -162,9 +112,9 @@
         "type": "shell",
         "command": "make clean",
         "options": {
-          "cwd": "${workspaceRoot}/deps/Rack",
+          "cwd": "${workspaceRoot}/../../",
           "env": {
-            "RACK_DIR": "${workspaceRoot}/deps/Rack"
+            "RACK_DIR": "${workspaceRoot}/../../"
           }
         },
         "group": {
