@@ -123,7 +123,8 @@ build/src/PostHumanFM.cpp.o: src/PostHumanFM.cpp src/plugin.hpp \
  /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/dsp/vumeter.hpp \
  /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/dsp/filter.hpp \
  /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/dsp/digital.hpp \
- /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/dsp/convert.hpp
+ /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/dsp/convert.hpp \
+ src/DirectedGraph.hpp
 src/plugin.hpp:
 /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/rack.hpp:
 /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/common.hpp:
@@ -250,3 +251,4 @@ src/plugin.hpp:
 /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/dsp/filter.hpp:
 /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/dsp/digital.hpp:
 /home/rhughes/git/Rack/plugins/comp30040-vcv-rack-fm-plugin/../..//include/dsp/convert.hpp:
+src/DirectedGraph.hpp:
