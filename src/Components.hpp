@@ -6,26 +6,43 @@ using namespace rack;
 
 namespace ph {
 
-template <typename TBase = ModuleLightWidget>
+template <typename TBase = GrayModuleLightWidget>
 struct ConnectionLight : TBase {
-    ConnectionLight(Vec p0, Vec p1)
-        : p0(p0)
-        , p1(p1) {
-        this->box.size = Vec(std::fabs(p1.x - p0.x), std::fabs(p1.y - p0.y));
-
+    ConnectionLight(Vec p0, Vec p1) {
         this->angle = atan2(p1.y - p0.y, p1.x - p0.x);
-        // Calculate new endpoint on the edge of the circle
 
-        this->p0 = p0.plus(14 * Vec(cos(angle), sin(angle)));
-        this->p1 = p1.minus(14 * Vec(cos(angle), sin(angle)));
+        // Calculate new endpoint on the edge of the button
+        p0 = p0.plus(14 * Vec(cos(angle), sin(angle)));
+        p1 = p1.minus(14 * Vec(cos(angle), sin(angle)));
+
+        if (p0.x < p1.x || (p0.x == p1.x && p0.y < p1.y)) {
+            start = p0;
+            end = p1;
+        } else {
+            start = p1;
+            end = p0;
+            flipped = true;
+        }
+
+        this->box.pos = start;
+        this->box.size = end.minus(start);
+
+        start = Vec(0.0f, 0.0f);
+        end = Vec(this->box.size.x, this->box.size.y);
     }
 
-    void drawBackground(const Widget::DrawArgs& args) override {}
+    void drawBackground(const Widget::DrawArgs& args) override {
+        // nvgBeginPath(args.vg);
+        // nvgRect(args.vg, 0, 0, this->box.size.x, this->box.size.y);
+        // nvgStrokeColor(args.vg, nvgRGB(0, 0, 0));
+        // nvgStrokeWidth(args.vg, 1.0);
+        // nvgStroke(args.vg);
+    }
 
     void drawLight(const Widget::DrawArgs& args) override {
         nvgBeginPath(args.vg);
-        nvgMoveTo(args.vg, p0.x, p0.y);
-        nvgLineTo(args.vg, p1.x, p1.y);
+        nvgMoveTo(args.vg, start.x, start.y);
+        nvgLineTo(args.vg, end.x, end.y);
         nvgStrokeColor(args.vg, this->color);
         nvgStrokeWidth(args.vg, 2.0); // TODO: magic number
         nvgStroke(args.vg);
@@ -47,16 +64,17 @@ struct ConnectionLight : TBase {
             animTime = 0.0f;
         }
 
-        indicatorPos = p0.plus(animTime * (p1.minus(p0)));
+        indicatorPos = (flipped ? (1.0f - animTime) : animTime) * end;
         alpha = std::sin(M_PI * animTime);
         TBase::step();
     }
 
 private:
-    Vec p0;
-    Vec p1;
+    bool flipped = false;
+    Vec start = {0, 0};
+    Vec end;
     float animTime = 0.0f;
-    Vec indicatorPos = {p0.x, p0.y};
+    Vec indicatorPos = {0, 0};
 
     float alpha = 1.f;
     float angle;
