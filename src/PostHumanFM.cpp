@@ -17,6 +17,8 @@ struct PostHumanFM : Module {
 
     enum ParamId {
         ENUMS(SELECT_PARAMS, OPERATOR_COUNT),
+        ENUMS(WAVE_PARAMS, OPERATOR_COUNT),
+        ENUMS(WAVE_CV_PARAMS, OPERATOR_COUNT),
         ENUMS(MULT_PARAMS, OPERATOR_COUNT),
         ENUMS(MULT_CV_PARAMS, OPERATOR_COUNT),
         ENUMS(LEVEL_PARAMS, OPERATOR_COUNT),
@@ -61,7 +63,7 @@ struct PostHumanFM : Module {
         for (int op = 0; op < OPERATOR_COUNT; ++op) {
             configButton(SELECT_PARAMS + op, "Operator " + std::to_string(op + 1));
             configParam(MULT_PARAMS + op, -3, 3, 0.f, "Multiplier", "x", 2.f);
-            getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
+            // getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
             configParam(LEVEL_PARAMS + op, 0.f, 1.f, 0.f, "Level");
         }
 
@@ -246,11 +248,14 @@ struct PostHumanFMWidget : ModuleWidget {
 
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
         }
+
+        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(10.f, 41.f + 70.f)), module, PostHumanFM::VOCT_INPUT));
+        addChild(createOutputCentered<PJ301MPort>(mm2px(Vec(30.f, 41.f + 70.f)), module, PostHumanFM::AUDIO_OUTPUT));
     }
 
     void drawOpControls() {
-        const int x = box.size.x / 2;
-        const int y = box.size.y / 4;
+        const int x = mm2px(20.32f);
+        const int y = mm2px(45.72f);
 
         std::vector<Vec> opPositions;
 
@@ -277,7 +282,9 @@ struct PostHumanFMWidget : ModuleWidget {
             //                                         PostHumanFM::LEVEL_INPUTS + op));)
         }
 
-        drawOperators();
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            drawOperator(51.6467f + 22.014f * i, 41.f, i);
+        }
 
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             for (int j = 0; j < OPERATOR_COUNT; ++j) {
@@ -289,17 +296,36 @@ struct PostHumanFMWidget : ModuleWidget {
         }
     }
 
+    void drawOperator(float x, float y, float op) {
+        // TODO: CV percentage on a multi-knob like Serum
+
+        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x, y)), module, PostHumanFM::MULT_INPUTS + op));
+        // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 7, y + 15)), module, PostHumanFM::WAVE_CV_PARAMS + op));
+        addChild(createParamCentered<RoundBigBlackKnob>(mm2px(Vec(x, y + 20)), module, PostHumanFM::WAVE_PARAMS + op));
+        addChild(
+            createParamCentered<RoundBlackKnob>(mm2px(Vec(x + 5.5, y + 40)), module, PostHumanFM::LEVEL_PARAMS + op));
+        addChild(
+            createParamCentered<RoundBlackKnob>(mm2px(Vec(x - 5.5, y + 55)), module, PostHumanFM::MULT_PARAMS + op));
+
+        // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 5.5, y + 57)), module, PostHumanFM::MULT_CV_PARAMS +
+        // op)); addChild(createParamCentered<Trimpot>(mm2px(Vec(x + 5.5, y + 57)), module, PostHumanFM::LEVEL_CV_PARAMS
+        // + op));
+
+        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x + 5.5, y + 70)), module, PostHumanFM::LEVEL_INPUTS + op));
+        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x - 5.5, y + 70)), module, PostHumanFM::MULT_INPUTS + op));
+
+        // addChild(createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0), module, PostHumanFM::MULT_PARAMS + i));
+        // addChild(createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0 + 40), module, PostHumanFM::LEVEL_PARAMS +
+        // i)); addChild(createParamCentered<Trimpot>(Vec(x0 + i * 35, y0 + 80), module, PostHumanFM::LEVEL_CV_PARAMS +
+        // i)); addChild(createInputCentered<PJ301MPort>(Vec(x0 + i * 35, y0 + 120), module, PostHumanFM::LEVEL_INPUTS +
+        // i));
+    }
+
     void drawOperators() {
         float x0 = 30;
         float y0 = 220;
 
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
-            addChild(createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0), module, PostHumanFM::MULT_PARAMS + i));
-            addChild(
-                createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0 + 40), module, PostHumanFM::LEVEL_PARAMS + i));
-            addChild(createParamCentered<Trimpot>(Vec(x0 + i * 35, y0 + 80), module, PostHumanFM::LEVEL_CV_PARAMS + i));
-            addChild(
-                createInputCentered<PJ301MPort>(Vec(x0 + i * 35, y0 + 120), module, PostHumanFM::LEVEL_INPUTS + i));
         }
     }
 
@@ -344,7 +370,7 @@ struct PostHumanFMWidget : ModuleWidget {
 
     // Layout
 
-    constexpr static float opRadius = 64.f;
+    constexpr static float opRadius = 48.f;
 
     constexpr static float pi = M_PI;
 
