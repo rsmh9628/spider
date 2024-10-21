@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 #include "DirectedGraph.hpp"
 #include "Components.hpp"
+#include "Wavetable.hpp"
 
 #include <array>
 
@@ -33,15 +34,40 @@ struct PostHumanFM : Module {
     enum LightId { ENUMS(SELECT_LIGHTS, OPERATOR_COUNT), ENUMS(CONNECTION_LIGHTS, CONNECTION_COUNT), LIGHTS_LEN };
 
     struct FMOperator {
-        void generate(float freq, float level, float sampleTime, float multiplier, float modulation) {
-            // Calculate phase increment
+        void generate(float freq, float wavePos, float level, float sampleTime, float multiplier, float modulation) {
+            //// Calculate phase increment
+            // float phaseIncrement = (multiplier * freq) * sampleTime;
+            //
+            //// Update phase
+            // phase = std::fmod(phase + phaseIncrement + modulation, 1.0f);
+            //
+            //// Generate output
+            // out = level * std::sin(2.f * M_PI * phase);
+
             float phaseIncrement = (multiplier * freq) * sampleTime;
 
-            // Update phase
             phase = std::fmod(phase + phaseIncrement + modulation, 1.0f);
 
-            // Generate output
-            out = level * std::sin(2.f * M_PI * phase);
+            float index = phase * wavetable.getWaveLength();
+
+            // lets fucking try it ey
+            // out = level * wavetable.sampleAt(0, waveIndex, index);
+
+            float indexF = index - std::trunc(index);
+            size_t index0 = std::trunc(index);
+            size_t index1 = (index0 + 1) % wavetable.getWaveLength(); // TODO: this mod might not be needed
+
+            float pos = wavePos - std::trunc(wavePos);
+            size_t wavePos0 = std::trunc(wavePos);
+            size_t wavePos1 = wavePos + 1;
+
+            float out0 = wavetable.sampleAt(wavePos0, index0);
+            float out1 = wavetable.sampleAt(wavePos1, index1);
+
+            out = level * crossfade(out0, out1, pos);
+
+            // Linearly interpolate between the two waves
+            // out = level * crossfade(out0, out1, wavePos);
         }
 
         float phase = 0.f;
@@ -51,6 +77,9 @@ struct PostHumanFM : Module {
             phase = 0.f;
             out = 0.f;
         }
+
+    private:
+        Wavetable wavetable;
     };
 
     PostHumanFM() {
@@ -163,6 +192,7 @@ struct PostHumanFM : Module {
             auto& levelParam = getParam(LEVEL_PARAMS + op);
 
             auto level = levelParam.getValue();
+            auto wavePos = getParam(WAVE_PARAMS + op).getValue();
 
             if (getInput(LEVEL_INPUTS + op).isConnected()) {
                 level = inputs[LEVEL_INPUTS + op].getVoltage() / 10.f;
@@ -178,7 +208,7 @@ struct PostHumanFM : Module {
                 modulation += operators[modulator].out;
             }
 
-            operators[op].generate(freq, level, mult, args.sampleTime, modulation);
+            operators[op].generate(freq, wavePos, level, mult, args.sampleTime, modulation);
         }
 
         float output = 0.f;
