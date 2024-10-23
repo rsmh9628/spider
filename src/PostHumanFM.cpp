@@ -2,6 +2,7 @@
 #include "DirectedGraph.hpp"
 #include "Components.hpp"
 #include "Wavetable.hpp"
+#include "WavetableDisplay.hpp"
 
 #include <array>
 
@@ -35,27 +36,25 @@ struct PostHumanFM : Module {
 
     struct FMOperator {
         void generate(float freq, float wavePos, float level, float sampleTime, float multiplier, float modulation) {
-            //// Calculate phase increment
-            // float phaseIncrement = (multiplier * freq) * sampleTime;
-            //
-            //// Update phase
-            // phase = std::fmod(phase + phaseIncrement + modulation, 1.0f);
-            //
-            //// Generate output
-            // out = level * std::sin(2.f * M_PI * phase);
+            wavePos *= (wavetable.waveCount() - 1);
+
+            lastWavePos = wavePos;
 
             float phaseIncrement = (multiplier * freq) * sampleTime;
 
-            phase = std::fmod(phase + phaseIncrement + modulation, 1.0f);
+            phase = phase + phaseIncrement + modulation;
 
-            float index = phase * wavetable.getWaveLength();
+            if (phase > 1.f) {
+                phase -= 1.f;
+            } else if (phase < 0.f) {
+                phase += 1.f;
+            }
 
-            // lets fucking try it ey
-            // out = level * wavetable.sampleAt(0, waveIndex, index);
+            float index = phase * wavetable.wavelength;
 
             float indexF = index - std::trunc(index);
             size_t index0 = std::trunc(index);
-            size_t index1 = (index0 + 1) % wavetable.getWaveLength(); // TODO: this mod might not be needed
+            size_t index1 = (index0 + 1) % wavetable.wavelength;
 
             float pos = wavePos - std::trunc(wavePos);
             size_t wavePos0 = std::trunc(wavePos);
@@ -64,21 +63,19 @@ struct PostHumanFM : Module {
             float out0 = wavetable.sampleAt(wavePos0, index0);
             float out1 = wavetable.sampleAt(wavePos1, index1);
 
-            out = level * crossfade(out0, out1, pos);
-
             // Linearly interpolate between the two waves
-            // out = level * crossfade(out0, out1, wavePos);
+            out = level * crossfade(out0, out1, pos);
         }
 
         float phase = 0.f;
         float out = 0.f;
+        float lastWavePos;
 
         void reset() {
             phase = 0.f;
             out = 0.f;
         }
 
-    private:
         Wavetable wavetable;
     };
 
@@ -328,6 +325,14 @@ struct PostHumanFMWidget : ModuleWidget {
 
     void drawOperator(float x, float y, float op) {
         // TODO: CV percentage on a multi-knob like Serum
+
+        auto* fmModule = dynamic_cast<PostHumanFM*>(module);
+
+        auto* display = createWidgetCentered<WavetableDisplay>(mm2px(Vec(x, y - 12)));
+        display->wavetable = &fmModule->operators[op].wavetable;
+        display->wavePos = &fmModule->operators[op].lastWavePos;
+
+        addChild(display);
 
         addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x, y)), module, PostHumanFM::MULT_INPUTS + op));
         // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 7, y + 15)), module, PostHumanFM::WAVE_CV_PARAMS + op));
