@@ -18,7 +18,7 @@ void WavetableDisplay::draw(const DrawArgs& args) {
     size_t wavePos1 = wavePos + 1;
 
     nvgBeginPath(args.vg);
-    // todo:: too much detail for now
+    // TODO: too much detail for now
     size_t increment = wavetable->wavelength / 64 + 1;
 
     for (size_t i = 0; i <= wavetable->wavelength; i += increment) {
@@ -70,18 +70,24 @@ void WavetableDisplay::createContextMenu() {
         }
     }));
 
-    int sizeOffset = 5;
+    int maxSamples = wavetable->sampleCount();
+
+    const int sizeMin = 5; // 2^5 == 32 samples
+    const int sizeMax = std::ceil(log2(maxSamples));
+
     std::vector<std::string> sizeLabels;
-    for (int i = sizeOffset; i <= 14; i++) {
-        sizeLabels.push_back(string::f("%d", 1 << i));
+
+    for (int i = sizeMin; i <= sizeMax; i++) {
+        sizeLabels.push_back(string::f("%d", 1 << i)); // 1 << i == 2^i
     }
+
     menu->addChild(createIndexSubmenuItem(
-        "Single cycle length", sizeLabels,
+        "Set wavelength", sizeLabels,
         [=]() {
-            return math::log2(wavetable->wavelength - sizeOffset);
+            return log2(wavetable->wavelength) - sizeMin;
         },
         [=](int i) {
-            wavetable->wavelength = 1 << (i + sizeOffset);
+            wavetable->wavelength = 1 << (i + sizeMin); // 2^i
         }));
 }
 

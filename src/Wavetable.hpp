@@ -23,6 +23,9 @@ public:
         }
         return samples.size() / wavelength;
     }
+
+    size_t sampleCount() const { return samples.size(); }
+
     int wavelength;
 
 private:

@@ -238,10 +238,10 @@ struct PostHumanFMWidget : ModuleWidget {
         setModule(module);
         setPanel(createPanel(asset::plugin(pluginInstance, "res/PostHumanFM.svg")));
 
-        addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, 0)));
-        addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
-        addChild(createWidget<ScrewSilver>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
-        addChild(createWidget<ScrewSilver>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(createWidget<ScrewBlack>(Vec(RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
+        addChild(createWidget<ScrewBlack>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
+        addChild(createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
         // addChild(
         //     createParamCentered<RoundHugeBlackKnob>(Vec(box.size.x / 2, 250), module, PostHumanFM::OPERATOR_PARAM));
@@ -257,7 +257,7 @@ struct PostHumanFMWidget : ModuleWidget {
         if (!module)
             return;
 
-        drawOpControls();
+        // drawOpControls();
 
         // addChild(createInputCentered<PJ301MPort>(Vec(100, 256), module, PostHumanFM::VOCT_INPUT));
         // addChild(createOutputCentered<PJ301MPort>(Vec(100, 300), module, PostHumanFM::AUDIO_OUTPUT));
@@ -336,7 +336,7 @@ struct PostHumanFMWidget : ModuleWidget {
 
         addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x, y)), module, PostHumanFM::MULT_INPUTS + op));
         // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 7, y + 15)), module, PostHumanFM::WAVE_CV_PARAMS + op));
-        addChild(createParamCentered<RoundBigBlackKnob>(mm2px(Vec(x, y + 20)), module, PostHumanFM::WAVE_PARAMS + op));
+        addChild(createParamCentered<CKSSThreeHorizontal>(mm2px(Vec(x, y)), module, PostHumanFM::WAVE_PARAMS + op));
         addChild(
             createParamCentered<RoundBlackKnob>(mm2px(Vec(x + 5.5, y + 40)), module, PostHumanFM::LEVEL_PARAMS + op));
         addChild(
