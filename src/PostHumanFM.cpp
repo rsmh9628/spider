@@ -29,7 +29,13 @@ struct PostHumanFM : Module {
         PARAMS_LEN
     };
 
-    enum InputId { ENUMS(MULT_INPUTS, OPERATOR_COUNT), ENUMS(LEVEL_INPUTS, OPERATOR_COUNT), VOCT_INPUT, INPUTS_LEN };
+    enum InputId {
+        ENUMS(MULT_INPUTS, OPERATOR_COUNT),
+        ENUMS(LEVEL_INPUTS, OPERATOR_COUNT),
+        ENUMS(WAVE_INPUTS, OPERATOR_COUNT),
+        VOCT_INPUT,
+        INPUTS_LEN
+    };
 
     enum OutputId { AUDIO_OUTPUT, OUTPUTS_LEN };
     enum LightId { ENUMS(SELECT_LIGHTS, OPERATOR_COUNT), ENUMS(CONNECTION_LIGHTS, CONNECTION_COUNT), LIGHTS_LEN };
@@ -257,7 +263,7 @@ struct PostHumanFMWidget : ModuleWidget {
         if (!module)
             return;
 
-        // drawOpControls();
+        drawOpControls();
 
         // addChild(createInputCentered<PJ301MPort>(Vec(100, 256), module, PostHumanFM::VOCT_INPUT));
         // addChild(createOutputCentered<PJ301MPort>(Vec(100, 300), module, PostHumanFM::AUDIO_OUTPUT));
@@ -281,46 +287,72 @@ struct PostHumanFMWidget : ModuleWidget {
     }
 
     void drawOpControls() {
-        const int x = mm2px(20.32f);
-        const int y = mm2px(45.72f);
+        // const int x = mm2px(20.32f);
+        // const int y = mm2px(45.72f);
+        //
+        // std::vector<Vec> opPositions;
+        //
+        // for (int op = 0; op < OPERATOR_COUNT; ++op) {
+        //    // TODO: clean up and move to helper function
+        //
+        //    double angle = M_PI_2 + op * 2 * M_PI / OPERATOR_COUNT;
+        //    float opX = std::cos(angle) * opRadius;
+        //    float opY = std::sin(angle) * opRadius;
+        //
+        //    opPositions.push_back(Vec(x + opX, y + opY));
+        //
+        //    addParam(createLightParamCentered<VCVLightBezel<MediumSimpleLight<GreenLight>>>(
+        //        Vec(x + opX, y + opY), module, PostHumanFM::SELECT_PARAMS + op, PostHumanFM::SELECT_LIGHTS + op));
+        //
+        //    // addChild(createParamCentered<RoundBlackKnob>(Vec(RACK_GRID_WIDTH + 40 * op, 240), module,
+        //    //                                              PostHumanFM::MULT_PARAMS + op));
+        //    // addChild(createParamCentered<RoundBlackKnob>(Vec(RACK_GRID_WIDTH + 40 * op, 270), module,
+        //    //                                              PostHumanFM::LEVEL_PARAMS + op));
+        //    //
+        //    // addChild(createParamCentered<Trimpot>(Vec(RACK_GRID_WIDTH + 40 * op, 300), module,
+        //    //                                      PostHumanFM::LEVEL_CV_PARAMS + op));
+        //    // addChild(createInputCentered<PJ301MPort>(Vec(RACK_GRID_WIDTH + 40 * op, 350), module,
+        //    //                                         PostHumanFM::LEVEL_INPUTS + op));)
+        //}
+        //
+        //// for (int i = 0; i < OPERATOR_COUNT; ++i) {
+        ////     drawOperator(51.6467f + 22.014f * i, 41.f, i);
+        //// }
+        //
+        //// TODO: add the positions to a vector and do this in a loop
 
-        std::vector<Vec> opPositions;
+        const Vec multParamPos[OPERATOR_COUNT] = {mm2px(Vec(29.421, 14.254))};
+        const Vec multInputPos[OPERATOR_COUNT] = {mm2px(Vec(15.007, 22.283))};
+        const Vec multCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(29.421, 30.582))};
 
-        for (int op = 0; op < OPERATOR_COUNT; ++op) {
-            // TODO: clean up and move to helper function
+        const Vec waveParamPos[OPERATOR_COUNT] = {mm2px(Vec(42.211, 37.931))};
+        const Vec waveInputPos[OPERATOR_COUNT] = {mm2px(Vec(55.000, 28.319))};
+        const Vec waveCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(55.000, 45.215))};
 
-            double angle = M_PI_2 + op * 2 * M_PI / OPERATOR_COUNT;
-            float opX = std::cos(angle) * opRadius;
-            float opY = std::sin(angle) * opRadius;
+        const Vec levelParamPos[OPERATOR_COUNT] = {mm2px(Vec(68.737, 15.408))};
+        const Vec levelInputPos[OPERATOR_COUNT] = {mm2px(Vec(78.825, 31.534))};
+        const Vec levelCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(66.386, 38.710))};
 
-            opPositions.push_back(Vec(x + opX, y + opY));
+        addParam(createParamCentered<RoundBlackKnob>(multParamPos[0], module, PostHumanFM::MULT_PARAMS + 0));
+        addParam(createParamCentered<Trimpot>(multCvParamPos[0], module, PostHumanFM::MULT_CV_PARAMS + 0));
+        addInput(createInputCentered<DarkPJ301MPort>(multInputPos[0], module, PostHumanFM::MULT_INPUTS + 0));
 
-            addParam(createLightParamCentered<VCVLightBezel<MediumSimpleLight<GreenLight>>>(
-                Vec(x + opX, y + opY), module, PostHumanFM::SELECT_PARAMS + op, PostHumanFM::SELECT_LIGHTS + op));
+        addParam(createParamCentered<RoundBlackKnob>(waveParamPos[0], module, PostHumanFM::WAVE_PARAMS + 0));
+        addParam(createParamCentered<Trimpot>(waveCvParamPos[0], module, PostHumanFM::WAVE_CV_PARAMS + 0));
+        addInput(createInputCentered<DarkPJ301MPort>(waveInputPos[0], module, PostHumanFM::WAVE_INPUTS + 0));
 
-            // addChild(createParamCentered<RoundBlackKnob>(Vec(RACK_GRID_WIDTH + 40 * op, 240), module,
-            //                                              PostHumanFM::MULT_PARAMS + op));
-            // addChild(createParamCentered<RoundBlackKnob>(Vec(RACK_GRID_WIDTH + 40 * op, 270), module,
-            //                                              PostHumanFM::LEVEL_PARAMS + op));
-            //
-            // addChild(createParamCentered<Trimpot>(Vec(RACK_GRID_WIDTH + 40 * op, 300), module,
-            //                                      PostHumanFM::LEVEL_CV_PARAMS + op));
-            // addChild(createInputCentered<PJ301MPort>(Vec(RACK_GRID_WIDTH + 40 * op, 350), module,
-            //                                         PostHumanFM::LEVEL_INPUTS + op));)
-        }
+        addParam(createParamCentered<RoundBlackKnob>(levelParamPos[0], module, PostHumanFM::LEVEL_PARAMS + 0));
+        addParam(createParamCentered<Trimpot>(levelCvParamPos[0], module, PostHumanFM::LEVEL_CV_PARAMS + 0));
+        addInput(createInputCentered<DarkPJ301MPort>(levelInputPos[0], module, PostHumanFM::LEVEL_INPUTS + 0));
 
-        for (int i = 0; i < OPERATOR_COUNT; ++i) {
-            drawOperator(51.6467f + 22.014f * i, 41.f, i);
-        }
-
-        for (int i = 0; i < OPERATOR_COUNT; ++i) {
-            for (int j = 0; j < OPERATOR_COUNT; ++j) {
-                if (i == j)
-                    continue;
-                addChild(createConnectionLight(opPositions[i], opPositions[j], module,
-                                               PostHumanFM::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j));
-            }
-        }
+        // for (int i = 0; i < OPERATOR_COUNT; ++i) {
+        //     for (int j = 0; j < OPERATOR_COUNT; ++j) {
+        //         if (i == j)
+        //             continue;
+        //         addChild(createConnectionLight(opPositions[i], opPositions[j], module,
+        //                                        PostHumanFM::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j));
+        //     }
+        // }
     }
 
     void drawOperator(float x, float y, float op) {
