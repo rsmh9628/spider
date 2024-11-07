@@ -240,6 +240,42 @@ struct PostHumanFM : Module {
 
 // TODO: Organise
 struct PostHumanFMWidget : ModuleWidget {
+
+    // Multiple repeated params for each parameter and operator
+    struct ParameterPositions {
+        Vec paramPos;
+        Vec inputPos;
+        Vec cvParamPos;
+    };
+
+    const ParameterPositions multPositions[OPERATOR_COUNT] = {
+        {mm2px(Vec(29.421, 13.254)), mm2px(Vec(15.007, 21.283)), mm2px(Vec(29.421, 29.582))},
+        {mm2px(Vec(143.299, 13.195)), mm2px(Vec(157.713, 21.224)), mm2px(Vec(143.299, 29.588))},
+        {mm2px(Vec(165.097, 44.598)), mm2px(Vec(150.682, 39.744)), mm2px(Vec(165.097, 31.380))},
+        {mm2px(Vec(143.302, 107.098)), mm2px(Vec(157.717, 99.069)), mm2px(Vec(143.302, 90.705))},
+        {mm2px(Vec(29.421, 107.098)), mm2px(Vec(15.007, 99.069)), mm2px(Vec(29.421, 90.705))},
+        {mm2px(Vec(7.596, 44.598)), mm2px(Vec(22.011, 39.744)), mm2px(Vec(7.596, 31.380))}};
+
+    const ParameterPositions levelPositions[OPERATOR_COUNT] = {
+        {mm2px(Vec(68.772, 14.322)), mm2px(Vec(78.860, 30.447)), mm2px(Vec(66.430, 37.623))},
+        {mm2px(Vec(103.983, 14.350)), mm2px(Vec(93.895, 30.475)), mm2px(Vec(106.325, 37.652))},
+        {mm2px(Vec(165.097, 74.120)), mm2px(Vec(150.682, 78.974)), mm2px(Vec(165.097, 87.337))},
+        {mm2px(Vec(106.632, 99.748)), mm2px(Vec(94.957, 89.289)), mm2px(Vec(107.386, 82.113))},
+        {mm2px(Vec(66.091, 100.123)), mm2px(Vec(77.767, 89.289)), mm2px(Vec(65.337, 82.113))},
+        {mm2px(Vec(7.596, 74.120)), mm2px(Vec(22.011, 78.974)), mm2px(Vec(7.596, 87.337))}};
+
+    //    const Vec multParamPos[OPERATOR_COUNT] = {mm2px(Vec(29.421, 13.254))};
+    // const Vec multInputPos[OPERATOR_COUNT] = {mm2px(Vec(15.007, 21.283))};
+    // const Vec multCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(29.421, 29.582))};
+    //
+    // const Vec waveParamPos[OPERATOR_COUNT] = {mm2px(Vec(42.211, 36.931))};
+    // const Vec waveInputPos[OPERATOR_COUNT] = {mm2px(Vec(55.000, 27.319))};
+    // const Vec waveCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(55.000, 44.215))};
+    //
+    // const Vec levelParamPos[OPERATOR_COUNT] = {mm2px(Vec(68.737, 14.408))};
+    // const Vec levelInputPos[OPERATOR_COUNT] = {mm2px(Vec(78.825, 30.534))};
+    // const Vec levelCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(66.386, 37.710))};
+
     PostHumanFMWidget(PostHumanFM* module) {
         setModule(module);
         setPanel(createPanel(asset::plugin(pluginInstance, "res/PostHumanFM.svg")));
@@ -321,29 +357,32 @@ struct PostHumanFMWidget : ModuleWidget {
         //
         //// TODO: add the positions to a vector and do this in a loop
 
-        const Vec multParamPos[OPERATOR_COUNT] = {mm2px(Vec(29.421, 14.254))};
-        const Vec multInputPos[OPERATOR_COUNT] = {mm2px(Vec(15.007, 22.283))};
-        const Vec multCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(29.421, 30.582))};
+        // todo: tempo
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            // TODO: Clean this up can use only one set of addparam addinput etc. with clever
 
-        const Vec waveParamPos[OPERATOR_COUNT] = {mm2px(Vec(42.211, 37.931))};
-        const Vec waveInputPos[OPERATOR_COUNT] = {mm2px(Vec(55.000, 28.319))};
-        const Vec waveCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(55.000, 45.215))};
+            addParam(
+                createParamCentered<RoundBlackKnob>(multPositions[i].paramPos, module, PostHumanFM::MULT_PARAMS + i));
+            addParam(
+                createParamCentered<Trimpot>(multPositions[i].cvParamPos, module, PostHumanFM::MULT_CV_PARAMS + i));
+            addInput(
+                createInputCentered<DarkPJ301MPort>(multPositions[i].inputPos, module, PostHumanFM::MULT_INPUTS + i));
 
-        const Vec levelParamPos[OPERATOR_COUNT] = {mm2px(Vec(68.737, 15.408))};
-        const Vec levelInputPos[OPERATOR_COUNT] = {mm2px(Vec(78.825, 31.534))};
-        const Vec levelCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(66.386, 38.710))};
+            addParam(
+                createParamCentered<RoundBlackKnob>(levelPositions[i].paramPos, module, PostHumanFM::LEVEL_PARAMS + i));
+            addParam(
+                createParamCentered<Trimpot>(levelPositions[i].cvParamPos, module, PostHumanFM::LEVEL_CV_PARAMS + i));
+            addInput(
+                createInputCentered<DarkPJ301MPort>(levelPositions[i].inputPos, module, PostHumanFM::LEVEL_INPUTS + i));
+        }
 
-        addParam(createParamCentered<RoundBlackKnob>(multParamPos[0], module, PostHumanFM::MULT_PARAMS + 0));
-        addParam(createParamCentered<Trimpot>(multCvParamPos[0], module, PostHumanFM::MULT_CV_PARAMS + 0));
-        addInput(createInputCentered<DarkPJ301MPort>(multInputPos[0], module, PostHumanFM::MULT_INPUTS + 0));
-
-        addParam(createParamCentered<RoundBlackKnob>(waveParamPos[0], module, PostHumanFM::WAVE_PARAMS + 0));
-        addParam(createParamCentered<Trimpot>(waveCvParamPos[0], module, PostHumanFM::WAVE_CV_PARAMS + 0));
-        addInput(createInputCentered<DarkPJ301MPort>(waveInputPos[0], module, PostHumanFM::WAVE_INPUTS + 0));
-
-        addParam(createParamCentered<RoundBlackKnob>(levelParamPos[0], module, PostHumanFM::LEVEL_PARAMS + 0));
-        addParam(createParamCentered<Trimpot>(levelCvParamPos[0], module, PostHumanFM::LEVEL_CV_PARAMS + 0));
-        addInput(createInputCentered<DarkPJ301MPort>(levelInputPos[0], module, PostHumanFM::LEVEL_INPUTS + 0));
+        // addParam(createParamCentered<RoundBlackKnob>(waveParamPos[0], module, PostHumanFM::WAVE_PARAMS + 0));
+        // addParam(createParamCentered<Trimpot>(waveCvParamPos[0], module, PostHumanFM::WAVE_CV_PARAMS + 0));
+        // addInput(createInputCentered<DarkPJ301MPort>(waveInputPos[0], module, PostHumanFM::WAVE_INPUTS + 0));
+        //
+        // addParam(createParamCentered<RoundBlackKnob>(levelParamPos[0], module, PostHumanFM::LEVEL_PARAMS + 0));
+        // addParam(createParamCentered<Trimpot>(levelCvParamPos[0], module, PostHumanFM::LEVEL_CV_PARAMS + 0));
+        // addInput(createInputCentered<DarkPJ301MPort>(levelInputPos[0], module, PostHumanFM::LEVEL_INPUTS + 0));
 
         // for (int i = 0; i < OPERATOR_COUNT; ++i) {
         //     for (int j = 0; j < OPERATOR_COUNT; ++j) {
