@@ -80,7 +80,7 @@ private:
     float angle;
 };
 
-template <typename TBase = GreenLight>
+template <typename TBase = RedLight>
 ConnectionLight<TBase>* createConnectionLight(Vec p0, Vec p1, Module* module, int firstLightId) {
     auto* light = new ConnectionLight<TBase>(p0, p1);
     light->module = module;

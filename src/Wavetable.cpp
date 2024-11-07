@@ -66,8 +66,6 @@ void Wavetable::interpolate() {
 
         fft.rfft(timeDomainSamples.data(), frequencyDomainSamples.data());
 
-        // TODO: this is taken directly from vcv rack, change it before you push
-
         // Compute FFT-filtered version of the wave
         for (size_t j = 0; j < wavelength; j++) {
             interpolatedFrequencyDomainSamples[2 * j + 0] = frequencyDomainSamples[2 * j + 0];

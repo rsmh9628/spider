@@ -14,6 +14,8 @@ public:
     void createContextMenu();
 
     void draw(const DrawArgs& args) override;
+    void drawLayer(const DrawArgs& args, int layer) override;
+
     Wavetable* wavetable = nullptr;
     float* wavePos = nullptr;
 };

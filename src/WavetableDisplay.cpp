@@ -3,13 +3,20 @@
 namespace ph {
 
 WavetableDisplay::WavetableDisplay() {
-    this->box.size = Vec(64, 64);
+    this->box.size = mm2px(Vec(21.602, 10.993));
 }
 
 void WavetableDisplay::draw(const DrawArgs& args) {
     if (!wavetable) {
         return;
     }
+}
+
+void WavetableDisplay::drawLayer(const DrawArgs& args, int layer) {
+    if (!wavetable)
+        return;
+    if (layer != 1)
+        return;
 
     float wavePos = *this->wavePos;
 

@@ -25,7 +25,7 @@ struct PostHumanFM : Module {
         ENUMS(MULT_CV_PARAMS, OPERATOR_COUNT),
         ENUMS(LEVEL_PARAMS, OPERATOR_COUNT),
         ENUMS(LEVEL_CV_PARAMS, OPERATOR_COUNT),
-        EDIT_PARAM,
+        FREQ_PARAM,
         PARAMS_LEN
     };
 
@@ -88,13 +88,13 @@ struct PostHumanFM : Module {
     PostHumanFM() {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
 
-        configInput(VOCT_INPUT, "V/Oct");
+        configInput(VOCT_INPUT, "1V/Oct");
         configOutput(AUDIO_OUTPUT, "Audio");
-        configButton(EDIT_PARAM, "Edit");
 
         for (int op = 0; op < OPERATOR_COUNT; ++op) {
             configButton(SELECT_PARAMS + op, "Operator " + std::to_string(op + 1));
             configParam(MULT_PARAMS + op, -3, 3, 0.f, "Multiplier", "x", 2.f);
+            getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
             // getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
             configParam(LEVEL_PARAMS + op, 0.f, 1.f, 0.f, "Level");
         }
@@ -249,7 +249,7 @@ struct PostHumanFMWidget : ModuleWidget {
     };
 
     const ParameterPositions multPositions[OPERATOR_COUNT] = {
-        {mm2px(Vec(29.421, 13.254)), mm2px(Vec(15.007, 21.283)), mm2px(Vec(29.421, 29.582))},
+        {mm2px(Vec(29.421, 13.167)), mm2px(Vec(15.007, 21.196)), mm2px(Vec(29.421, 29.560))},
         {mm2px(Vec(143.299, 13.195)), mm2px(Vec(157.713, 21.224)), mm2px(Vec(143.299, 29.588))},
         {mm2px(Vec(165.097, 44.598)), mm2px(Vec(150.682, 39.744)), mm2px(Vec(165.097, 31.380))},
         {mm2px(Vec(143.302, 107.098)), mm2px(Vec(157.717, 99.069)), mm2px(Vec(143.302, 90.705))},
@@ -257,12 +257,28 @@ struct PostHumanFMWidget : ModuleWidget {
         {mm2px(Vec(7.596, 44.598)), mm2px(Vec(22.011, 39.744)), mm2px(Vec(7.596, 31.380))}};
 
     const ParameterPositions levelPositions[OPERATOR_COUNT] = {
-        {mm2px(Vec(68.772, 14.322)), mm2px(Vec(78.860, 30.447)), mm2px(Vec(66.430, 37.623))},
+        {mm2px(Vec(68.737, 14.322)), mm2px(Vec(78.825, 30.447)), mm2px(Vec(66.395, 37.623))},
         {mm2px(Vec(103.983, 14.350)), mm2px(Vec(93.895, 30.475)), mm2px(Vec(106.325, 37.652))},
         {mm2px(Vec(165.097, 74.120)), mm2px(Vec(150.682, 78.974)), mm2px(Vec(165.097, 87.337))},
-        {mm2px(Vec(106.632, 99.748)), mm2px(Vec(94.957, 89.289)), mm2px(Vec(107.386, 82.113))},
+        {mm2px(Vec(106.632, 100.123)), mm2px(Vec(94.957, 89.289)), mm2px(Vec(107.386, 82.113))},
         {mm2px(Vec(66.091, 100.123)), mm2px(Vec(77.767, 89.289)), mm2px(Vec(65.337, 82.113))},
         {mm2px(Vec(7.596, 74.120)), mm2px(Vec(22.011, 78.974)), mm2px(Vec(7.596, 87.337))}};
+
+    const ParameterPositions wavePositions[OPERATOR_COUNT] = {
+        {mm2px(Vec(42.211, 36.844)), mm2px(Vec(55.000, 27.233)), mm2px(Vec(55.000, 44.128))},
+        {mm2px(Vec(130.509, 36.844)), mm2px(Vec(117.720, 27.261)), mm2px(Vec(117.720, 44.156))},
+        {mm2px(Vec(135.745, 51.447)), mm2px(Vec(125.657, 64.397)), mm2px(Vec(138.086, 71.573))},
+        {mm2px(Vec(130.513, 83.421)), mm2px(Vec(117.724, 93.032)), mm2px(Vec(117.724, 76.137))},
+        {mm2px(Vec(42.211, 83.421)), mm2px(Vec(55.000, 93.032)), mm2px(Vec(55.000, 76.137))},
+        {mm2px(Vec(36.948, 51.447)), mm2px(Vec(47.036, 64.397)), mm2px(Vec(34.606, 71.573))}};
+
+    const Vec displayPositions[OPERATOR_COUNT] = {mm2px(Vec(38.278, 8.297)),   mm2px(Vec(112.840, 8.297)),
+                                                  mm2px(Vec(146.850, 53.862)), mm2px(Vec(113.830, 100.283)),
+                                                  mm2px(Vec(37.291, 100.283)), mm2px(Vec(4.241, 53.862))};
+
+    const Vec opSelectorPositions[OPERATOR_COUNT] = {mm2px(Vec(73.961, 47.245)),  mm2px(Vec(98.758, 47.245)),
+                                                     mm2px(Vec(111.157, 60.146)), mm2px(Vec(98.758, 73.047)),
+                                                     mm2px(Vec(73.962, 73.047)),  mm2px(Vec(61.563, 60.146))};
 
     //    const Vec multParamPos[OPERATOR_COUNT] = {mm2px(Vec(29.421, 13.254))};
     // const Vec multInputPos[OPERATOR_COUNT] = {mm2px(Vec(15.007, 21.283))};
@@ -318,8 +334,11 @@ struct PostHumanFMWidget : ModuleWidget {
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
         }
 
-        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(10.f, 41.f + 70.f)), module, PostHumanFM::VOCT_INPUT));
-        addChild(createOutputCentered<PJ301MPort>(mm2px(Vec(30.f, 41.f + 70.f)), module, PostHumanFM::AUDIO_OUTPUT));
+        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(65.193f, 117.008f)), module, PostHumanFM::VOCT_INPUT));
+        addChild(createOutputCentered<PJ301MPort>(mm2px(Vec(107.527f, 117.008f)), module, PostHumanFM::AUDIO_OUTPUT));
+
+        addChild(
+            createParamCentered<RoundBigBlackKnob>(mm2px(Vec(86.360f, 113.318f)), module, PostHumanFM::FREQ_PARAM));
     }
 
     void drawOpControls() {
@@ -358,8 +377,15 @@ struct PostHumanFMWidget : ModuleWidget {
         //// TODO: add the positions to a vector and do this in a loop
 
         // todo: tempo
+        auto* fmModule = dynamic_cast<PostHumanFM*>(module);
+
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             // TODO: Clean this up can use only one set of addparam addinput etc. with clever
+            auto* display = createWidget<WavetableDisplay>(displayPositions[i]);
+            display->wavetable = &fmModule->operators[i].wavetable;
+            display->wavePos = &fmModule->operators[i].lastWavePos;
+
+            addChild(display);
 
             addParam(
                 createParamCentered<RoundBlackKnob>(multPositions[i].paramPos, module, PostHumanFM::MULT_PARAMS + i));
@@ -374,6 +400,22 @@ struct PostHumanFMWidget : ModuleWidget {
                 createParamCentered<Trimpot>(levelPositions[i].cvParamPos, module, PostHumanFM::LEVEL_CV_PARAMS + i));
             addInput(
                 createInputCentered<DarkPJ301MPort>(levelPositions[i].inputPos, module, PostHumanFM::LEVEL_INPUTS + i));
+
+            addParam(
+                createParamCentered<RoundBlackKnob>(wavePositions[i].paramPos, module, PostHumanFM::WAVE_PARAMS + i));
+            addParam(
+                createParamCentered<Trimpot>(wavePositions[i].cvParamPos, module, PostHumanFM::WAVE_CV_PARAMS + i));
+            addInput(
+                createInputCentered<DarkPJ301MPort>(wavePositions[i].inputPos, module, PostHumanFM::WAVE_INPUTS + i));
+
+            for (int j = 0; j < OPERATOR_COUNT; ++j) {
+                if (i == j)
+                    continue;
+                addChild(createConnectionLight(opSelectorPositions[i], opSelectorPositions[j], module,
+                                               PostHumanFM::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j));
+            }
+
+            addParam(createParamCentered<VCVButton>(opSelectorPositions[i], module, PostHumanFM::SELECT_PARAMS + i));
         }
 
         // addParam(createParamCentered<RoundBlackKnob>(waveParamPos[0], module, PostHumanFM::WAVE_PARAMS + 0));
@@ -394,38 +436,40 @@ struct PostHumanFMWidget : ModuleWidget {
         // }
     }
 
-    void drawOperator(float x, float y, float op) {
-        // TODO: CV percentage on a multi-knob like Serum
-
-        auto* fmModule = dynamic_cast<PostHumanFM*>(module);
-
-        auto* display = createWidgetCentered<WavetableDisplay>(mm2px(Vec(x, y - 12)));
-        display->wavetable = &fmModule->operators[op].wavetable;
-        display->wavePos = &fmModule->operators[op].lastWavePos;
-
-        addChild(display);
-
-        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x, y)), module, PostHumanFM::MULT_INPUTS + op));
-        // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 7, y + 15)), module, PostHumanFM::WAVE_CV_PARAMS + op));
-        addChild(createParamCentered<CKSSThreeHorizontal>(mm2px(Vec(x, y)), module, PostHumanFM::WAVE_PARAMS + op));
-        addChild(
-            createParamCentered<RoundBlackKnob>(mm2px(Vec(x + 5.5, y + 40)), module, PostHumanFM::LEVEL_PARAMS + op));
-        addChild(
-            createParamCentered<RoundBlackKnob>(mm2px(Vec(x - 5.5, y + 55)), module, PostHumanFM::MULT_PARAMS + op));
-
-        // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 5.5, y + 57)), module, PostHumanFM::MULT_CV_PARAMS +
-        // op)); addChild(createParamCentered<Trimpot>(mm2px(Vec(x + 5.5, y + 57)), module, PostHumanFM::LEVEL_CV_PARAMS
-        // + op));
-
-        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x + 5.5, y + 70)), module, PostHumanFM::LEVEL_INPUTS + op));
-        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x - 5.5, y + 70)), module, PostHumanFM::MULT_INPUTS + op));
-
-        // addChild(createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0), module, PostHumanFM::MULT_PARAMS + i));
-        // addChild(createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0 + 40), module, PostHumanFM::LEVEL_PARAMS +
-        // i)); addChild(createParamCentered<Trimpot>(Vec(x0 + i * 35, y0 + 80), module, PostHumanFM::LEVEL_CV_PARAMS +
-        // i)); addChild(createInputCentered<PJ301MPort>(Vec(x0 + i * 35, y0 + 120), module, PostHumanFM::LEVEL_INPUTS +
-        // i));
-    }
+    // void drawOperator(float x, float y, float op) {
+    //     // TODO: CV percentage on a multi-knob like Serum
+    //
+    //     auto* fmModule = dynamic_cast<PostHumanFM*>(module);
+    //
+    //     addChild(display);
+    //
+    //     addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x, y)), module, PostHumanFM::MULT_INPUTS + op));
+    //     // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 7, y + 15)), module, PostHumanFM::WAVE_CV_PARAMS +
+    //     op)); addChild(createParamCentered<CKSSThreeHorizontal>(mm2px(Vec(x, y)), module, PostHumanFM::WAVE_PARAMS +
+    //     op)); addChild(
+    //         createParamCentered<RoundBlackKnob>(mm2px(Vec(x + 5.5, y + 40)), module, PostHumanFM::LEVEL_PARAMS +
+    //         op));
+    //     addChild(
+    //         createParamCentered<RoundBlackKnob>(mm2px(Vec(x - 5.5, y + 55)), module, PostHumanFM::MULT_PARAMS + op));
+    //
+    //     // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 5.5, y + 57)), module, PostHumanFM::MULT_CV_PARAMS +
+    //     // op)); addChild(createParamCentered<Trimpot>(mm2px(Vec(x + 5.5, y + 57)), module,
+    //     PostHumanFM::LEVEL_CV_PARAMS
+    //     // + op));
+    //
+    //     addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x + 5.5, y + 70)), module, PostHumanFM::LEVEL_INPUTS +
+    //     op)); addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x - 5.5, y + 70)), module, PostHumanFM::MULT_INPUTS
+    //     + op));
+    //
+    //     // addChild(createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0), module, PostHumanFM::MULT_PARAMS + i));
+    //     // addChild(createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0 + 40), module, PostHumanFM::LEVEL_PARAMS
+    //     +
+    //     // i)); addChild(createParamCentered<Trimpot>(Vec(x0 + i * 35, y0 + 80), module, PostHumanFM::LEVEL_CV_PARAMS
+    //     +
+    //     // i)); addChild(createInputCentered<PJ301MPort>(Vec(x0 + i * 35, y0 + 120), module,
+    //     PostHumanFM::LEVEL_INPUTS +
+    //     // i));
+    // }
 
     void drawOperators() {
         float x0 = 30;
@@ -517,7 +561,7 @@ struct PostHumanFMWidget : ModuleWidget {
     //        return 0;
     //    }
     //}
-};
+}; // namespace ph
 
 } // namespace ph
 
