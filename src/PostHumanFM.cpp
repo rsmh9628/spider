@@ -69,6 +69,7 @@ struct PostHumanFM : Module {
             float out0 = wavetable.sampleAt(wavePos0, index0);
             float out1 = wavetable.sampleAt(wavePos1, index1);
 
+            // TODO: Only linearly interpolate if necessary otherwise it breaks
             // Linearly interpolate between the two waves
             out = level * crossfade(out0, out1, pos);
         }
@@ -86,22 +87,7 @@ struct PostHumanFM : Module {
     };
 
     PostHumanFM() {
-        config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
-
-        configInput(VOCT_INPUT, "1V/Oct");
-        configOutput(AUDIO_OUTPUT, "Audio");
-
-        for (int op = 0; op < OPERATOR_COUNT; ++op) {
-            configButton(SELECT_PARAMS + op, "Operator " + std::to_string(op + 1));
-            configParam(MULT_PARAMS + op, -3, 3, 0.f, "Multiplier", "x", 2.f);
-            getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
-            // getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
-            configParam(LEVEL_PARAMS + op, 0.f, 1.f, 0.f, "Level");
-        }
-
-        for (int conn = 0; conn < CONNECTION_COUNT; ++conn) {
-            configLight(CONNECTION_LIGHTS + conn);
-        }
+        configParameters();
 
         // configParam(OPERATOR_PARAM, 0.f, OPERATOR_COUNT - 1, 0.f, "Operator", "", 0.f, 1.f, 1.f);
         // getParamQuantity(OPERATOR_PARAM)->snapEnabled = true;
@@ -126,6 +112,41 @@ struct PostHumanFM : Module {
     //        operatorLight.setBrightness(currentOperator == i);
     //    }
     //}
+
+    void configParameters() {
+        config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
+
+        configInput(VOCT_INPUT, "1V/Oct");
+        configOutput(AUDIO_OUTPUT, "Audio");
+        configParam(FREQ_PARAM, -80, 80, 0.f, "Frequency", "Hz", dsp::FREQ_SEMITONE, dsp::FREQ_C4);
+
+        for (int op = 0; op < OPERATOR_COUNT; ++op) {
+            std::string opStr = std::to_string(op + 1);
+
+            configButton(SELECT_PARAMS + op, "Select operator " + opStr);
+            configParam(MULT_PARAMS + op, -3, 3, 0.f, "Operator " + opStr + " multiplier", "x", 2.f);
+            configParam(LEVEL_PARAMS + op, 0.f, 2.f, 0.f, "Operator " + opStr + " level", "%", -10, 40.f);
+            configParam(WAVE_PARAMS + op, 0.f, 1.f, 0.f, "Operator " + opStr + " wavetable position", "%", 0.f, 100.f,
+                        0.f);
+
+            configParam(MULT_CV_PARAMS + op, -1.f, 1.f, 0.f, "Operator " + opStr + " multiplier CV", "%", 0.f, 100.f,
+                        0.f);
+            configParam(LEVEL_CV_PARAMS + op, -1.f, 1.f, 0.f, "Operator " + opStr + " level CV", "%", 0.f, 100.f, 0.f);
+            configParam(WAVE_CV_PARAMS + op, -1.f, 1.f, 0.f, "Operator " + opStr + " wavetable position CV", "%", 0.f,
+                        100.f, 0.f);
+
+            configInput(MULT_INPUTS + op, "Operator " + opStr + " multiplier");
+            configInput(LEVEL_INPUTS + op, "Operator " + opStr + " level");
+            configInput(WAVE_INPUTS + op, "Operator " + opStr + " wavetable position");
+
+            getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
+            // getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
+        }
+
+        for (int conn = 0; conn < CONNECTION_COUNT; ++conn) {
+            configLight(CONNECTION_LIGHTS + conn);
+        }
+    }
 
     void processEdit() {
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
@@ -157,8 +178,11 @@ struct PostHumanFM : Module {
     }
 
     void process(const ProcessArgs& args) override {
-        float voct = inputs[VOCT_INPUT].getVoltage();
-        float freq = dsp::FREQ_C4 * std::pow(2.f, voct);
+        // float voct = inputs[VOCT_INPUT].getVoltage();
+        // float freq = std::pow(dsp::FREQ_SEMITONE, getParam(FREQ_PARAM).getValue()); //* std::pow(2.f, voct);
+        float freqParam = getParam(FREQ_PARAM).getValue() / 12.f;
+        float pitch = freqParam + getInput(VOCT_INPUT).getVoltage();
+        float freq = dsp::FREQ_C4 * std::pow(2.f, pitch);
 
         for (int conn = 0; conn < CONNECTION_COUNT; ++conn) {
             // getLight(CONNECTION_LIGHTS + conn).setBrightness(1.f);
@@ -174,17 +198,7 @@ struct PostHumanFM : Module {
         // if (selectTriggered) {
         //     //int newOperator = getParam(OPERATOR_PARAM).getValue();
         //
-        //    if (selectedOperator > -1) {
-        //        algorithmGraph.addEdge(selectedOperator, newOperator);
-        //        printf("Added edge %d -> %d\n", selectedOperator, newOperator);
-        //        selectedOperator = -1;
-        //        topologicalOrder = algorithmGraph.topologicalSort();
-        //    } else {
-        //        selectedOperator = newOperator;
-        //    }
-        //
-        //    printf("Selected operator %d\n", newOperator);
-        //}
+        //    if (selectedOperator > -1) {1
         //// todo: this can eventually be parallelised with SIMD once independent carriers can be found from the graph
 
         // todo: temporarily disabling DSP
@@ -194,15 +208,19 @@ struct PostHumanFM : Module {
             auto& multParam = getParam(MULT_PARAMS + op);
             auto& levelParam = getParam(LEVEL_PARAMS + op);
 
-            auto level = levelParam.getValue();
+            // levelParam.getValue();
             auto wavePos = getParam(WAVE_PARAMS + op).getValue();
 
-            if (getInput(LEVEL_INPUTS + op).isConnected()) {
-                level = inputs[LEVEL_INPUTS + op].getVoltage() / 10.f;
-                level = getParam(LEVEL_CV_PARAMS + op).getValue() * level;
-            }
-
+            // if (getInput(LEVEL_INPUTS + op).isConnected()) {
+            //     level = inputs[LEVEL_INPUTS + op].getVoltage() / 10.f;
+            //     level = getParam(LEVEL_CV_PARAMS + op).getValue() * level;
+            // }
+            //
             float mult = std::pow(2.f, multParam.getValue());
+            float level = (std::pow(1.05, levelParam.getValue()) - 1) * 20;
+
+            if (i == 0)
+                printf("Level %f\n", level);
 
             const auto& modulators = algorithmGraph.getAdjacentVerticesRev(op);
 
