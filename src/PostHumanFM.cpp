@@ -76,7 +76,7 @@ struct PostHumanFM : Module {
 
         float phase = 0.f;
         float out = 0.f;
-        float lastWavePos;
+        float lastWavePos = 0.f;
 
         void reset() {
             phase = 0.f;
@@ -86,32 +86,7 @@ struct PostHumanFM : Module {
         Wavetable wavetable;
     };
 
-    PostHumanFM() {
-        configParameters();
-
-        // configParam(OPERATOR_PARAM, 0.f, OPERATOR_COUNT - 1, 0.f, "Operator", "", 0.f, 1.f, 1.f);
-        // getParamQuantity(OPERATOR_PARAM)->snapEnabled = true;
-
-        // configButton(SELECT_PARAM, "Select");
-
-        // for (int i = 0; i < OPERATOR_COUNT - 1; i++) {
-        //     algorithmGraph.addEdge(i, i + 1);
-        // }
-        // topologicalOrder = algorithmGraph.topologicalSort();
-    }
-
-    // void processSelect() {
-    //     for (int i = 0; i < OPERATOR_COUNT; ++i) {
-    //         auto& trigger = operatorTriggers[i];
-    //         int selectTriggered = trigger.process(getParam(SELECT_PARAMS + i).getValue());
-    //         if (selectTriggered) {
-    //             currentOperator = i;
-    //         }
-    //
-    //        auto& operatorLight = getLight(SELECT_LIGHTS + i);
-    //        operatorLight.setBrightness(currentOperator == i);
-    //    }
-    //}
+    PostHumanFM() { configParameters(); }
 
     void configParameters() {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -125,7 +100,7 @@ struct PostHumanFM : Module {
 
             configButton(SELECT_PARAMS + op, "Select operator " + opStr);
             configParam(MULT_PARAMS + op, -3, 3, 0.f, "Operator " + opStr + " multiplier", "x", 2.f);
-            configParam(LEVEL_PARAMS + op, 0.f, 2.f, 0.f, "Operator " + opStr + " level", "%", -10, 40.f);
+            configParam(LEVEL_PARAMS + op, 0.f, 1.f, 0.f, "Operator " + opStr + " level", "%", 0.f, 100.f);
             configParam(WAVE_PARAMS + op, 0.f, 1.f, 0.f, "Operator " + opStr + " wavetable position", "%", 0.f, 100.f,
                         0.f);
 
@@ -148,23 +123,38 @@ struct PostHumanFM : Module {
         }
     }
 
-    void processEdit() {
+    void processEdit(float sampleTime) {
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            getLight(SELECT_LIGHTS + i).setBrightnessSmooth(selectedOperator == i, sampleTime);
+
             auto& trigger = operatorTriggers[i];
             int selectTriggered = trigger.process(getParam(SELECT_PARAMS + i).getValue());
 
             if (selectTriggered) {
-                if (selectedOperator > -1) {
-                    algorithmGraph.addEdge(selectedOperator, i);
-                    getLight(CONNECTION_LIGHTS + OPERATOR_COUNT * selectedOperator + i).setBrightness(1.f);
-                    printf("Light added for %d", OPERATOR_COUNT * selectedOperator + i);
-                    printf("Added edge %d -> %d\n", selectedOperator, i);
+                if (selectedOperator == i) {
                     selectedOperator = -1;
+                } else if (selectedOperator > -1) {
+                    auto result = algorithmGraph.toggleEdge(selectedOperator, i);
+
+                    if (result == ToggleEdgeResult::CYCLE) {
+                        printf("Cycle detected\n"); // todo: flash the lights red for a bit
+                        selectedOperator = -1;
+                        continue;
+                    }
+
+                    int lightIndex = (result == ToggleEdgeResult::REMOVED_REV)
+                                         ? (CONNECTION_LIGHTS + OPERATOR_COUNT * i + selectedOperator)
+                                         : (CONNECTION_LIGHTS + OPERATOR_COUNT * selectedOperator + i);
+
+                    getLight(lightIndex).setBrightness((result == ToggleEdgeResult::ADDED) ? 1.0f : 0.0f);
+
                     topologicalOrder = algorithmGraph.topologicalSort();
 
                     for (auto& op : operators) {
                         op.reset(); // Reset phase of all operators
                     }
+
+                    selectedOperator = -1;
 
                 } else {
                     selectedOperator = i;
@@ -172,55 +162,47 @@ struct PostHumanFM : Module {
 
                 printf("Selected operator %d\n", i);
             }
-            auto& operatorLight = getLight(SELECT_LIGHTS + i);
-            operatorLight.setBrightness(selectedOperator == i);
         }
     }
 
     void process(const ProcessArgs& args) override {
-        // float voct = inputs[VOCT_INPUT].getVoltage();
-        // float freq = std::pow(dsp::FREQ_SEMITONE, getParam(FREQ_PARAM).getValue()); //* std::pow(2.f, voct);
         float freqParam = getParam(FREQ_PARAM).getValue() / 12.f;
         float pitch = freqParam + getInput(VOCT_INPUT).getVoltage();
         float freq = dsp::FREQ_C4 * std::pow(2.f, pitch);
 
-        for (int conn = 0; conn < CONNECTION_COUNT; ++conn) {
-            // getLight(CONNECTION_LIGHTS + conn).setBrightness(1.f);
-        }
+        processEdit(args.sampleTime);
 
-        processEdit();
+        //// todo: this can eventually be parallelised with SIMD once independent carriers can be found from the
+        /// graph
 
-        // getLight(CONNECTION_LIGHTS + 8).setBrightness(1.f);
-        //  getLight(CONNECTION_LIGHTS + OPERATOR_COUNT * 3 + 5).setBrightness(1.f);
-
-        // bool selectTriggered = selectTrigger.process(getParam(SELECT_PARAM).getValue());
-
-        // if (selectTriggered) {
-        //     //int newOperator = getParam(OPERATOR_PARAM).getValue();
-        //
-        //    if (selectedOperator > -1) {1
-        //// todo: this can eventually be parallelised with SIMD once independent carriers can be found from the graph
-
-        // todo: temporarily disabling DSP
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             int op = topologicalOrder[i];
 
             auto& multParam = getParam(MULT_PARAMS + op);
-            auto& levelParam = getParam(LEVEL_PARAMS + op);
 
-            // levelParam.getValue();
-            auto wavePos = getParam(WAVE_PARAMS + op).getValue();
+            float mult = dsp::exp2_taylor5(multParam.getValue());
+            float level = getParam(LEVEL_PARAMS + op).getValue();
+            float wavePos = getParam(WAVE_PARAMS + op).getValue();
 
-            // if (getInput(LEVEL_INPUTS + op).isConnected()) {
-            //     level = inputs[LEVEL_INPUTS + op].getVoltage() / 10.f;
-            //     level = getParam(LEVEL_CV_PARAMS + op).getValue() * level;
-            // }
-            //
-            float mult = std::pow(2.f, multParam.getValue());
-            float level = (std::pow(1.05, levelParam.getValue()) - 1) * 20;
+            float multCv = getParam(MULT_CV_PARAMS + op).getValue();
+            float levelCv = getParam(LEVEL_CV_PARAMS + op).getValue();
+            float waveCv = getParam(WAVE_CV_PARAMS + op).getValue();
 
-            if (i == 0)
-                printf("Level %f\n", level);
+            if (getInput(MULT_INPUTS + op).isConnected()) {
+                mult += multCv * getInput(MULT_INPUTS + op).getVoltage() / 10.f;
+            }
+
+            if (getInput(LEVEL_INPUTS + op).isConnected()) {
+                level += levelCv * getInput(LEVEL_INPUTS + op).getVoltage() / 10.F;
+            }
+
+            if (getInput(WAVE_INPUTS + op).isConnected()) {
+                wavePos += waveCv * getInput(WAVE_INPUTS + op).getVoltage() / 10.f;
+            }
+
+            mult = clamp(mult, 0.125, 8.0f);
+            level = clamp(level, 0.f, 1.f);
+            wavePos = clamp(wavePos, 0.f, 1.f);
 
             const auto& modulators = algorithmGraph.getAdjacentVerticesRev(op);
 
@@ -297,19 +279,6 @@ struct PostHumanFMWidget : ModuleWidget {
     const Vec opSelectorPositions[OPERATOR_COUNT] = {mm2px(Vec(73.961, 47.245)),  mm2px(Vec(98.758, 47.245)),
                                                      mm2px(Vec(111.157, 60.146)), mm2px(Vec(98.758, 73.047)),
                                                      mm2px(Vec(73.962, 73.047)),  mm2px(Vec(61.563, 60.146))};
-
-    //    const Vec multParamPos[OPERATOR_COUNT] = {mm2px(Vec(29.421, 13.254))};
-    // const Vec multInputPos[OPERATOR_COUNT] = {mm2px(Vec(15.007, 21.283))};
-    // const Vec multCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(29.421, 29.582))};
-    //
-    // const Vec waveParamPos[OPERATOR_COUNT] = {mm2px(Vec(42.211, 36.931))};
-    // const Vec waveInputPos[OPERATOR_COUNT] = {mm2px(Vec(55.000, 27.319))};
-    // const Vec waveCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(55.000, 44.215))};
-    //
-    // const Vec levelParamPos[OPERATOR_COUNT] = {mm2px(Vec(68.737, 14.408))};
-    // const Vec levelInputPos[OPERATOR_COUNT] = {mm2px(Vec(78.825, 30.534))};
-    // const Vec levelCvParamPos[OPERATOR_COUNT] = {mm2px(Vec(66.386, 37.710))};
-
     PostHumanFMWidget(PostHumanFM* module) {
         setModule(module);
         setPanel(createPanel(asset::plugin(pluginInstance, "res/PostHumanFM.svg")));
@@ -319,35 +288,10 @@ struct PostHumanFMWidget : ModuleWidget {
         addChild(createWidget<ScrewBlack>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
         addChild(createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        // addChild(
-        //     createParamCentered<RoundHugeBlackKnob>(Vec(box.size.x / 2, 250), module, PostHumanFM::OPERATOR_PARAM));
-
-        // addChild(createParamCentered<VCVButton>(Vec(box.size.x / 2, 250), module, PostHumanFM::SELECT_PARAM));
-
-        // auto* display = createWidget<Display>(mm2px(Vec(4.963, 13.049)));
-        // display->module = module;
-        // addChild(display);
-
-        // addChild(createParamCentered<VCVLatch>(Vec(64, 64), module, PostHumanFM::EDIT_PARAM));
-
         if (!module)
             return;
 
         drawOpControls();
-
-        // addChild(createInputCentered<PJ301MPort>(Vec(100, 256), module, PostHumanFM::VOCT_INPUT));
-        // addChild(createOutputCentered<PJ301MPort>(Vec(100, 300), module, PostHumanFM::AUDIO_OUTPUT));
-
-        // for (int i = 0; i < PostHumanFM::OPERATOR_COUNT; ++i) {
-        //     for (int j = 0; j < PostHumanFM::OPERATOR_COUNT; ++j) {
-        //         if (i == j)
-        //             continue;
-        //         addChild(createConnectionLight(Vec(x + opX(i), y + opY(i)), Vec(x + opX(j), y + opY(j)), module,
-        //                                        PostHumanFM::CONNECTION_LIGHTS + i * j));
-        //     }
-        // }
-
-        // todo: move to helper function to draw each operator
 
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
         }
@@ -355,46 +299,10 @@ struct PostHumanFMWidget : ModuleWidget {
         addChild(createInputCentered<PJ301MPort>(mm2px(Vec(65.193f, 117.008f)), module, PostHumanFM::VOCT_INPUT));
         addChild(createOutputCentered<PJ301MPort>(mm2px(Vec(107.527f, 117.008f)), module, PostHumanFM::AUDIO_OUTPUT));
 
-        addChild(
-            createParamCentered<RoundBigBlackKnob>(mm2px(Vec(86.360f, 113.318f)), module, PostHumanFM::FREQ_PARAM));
+        addChild(createParamCentered<ShinyBigKnob>(mm2px(Vec(86.360f, 113.318f)), module, PostHumanFM::FREQ_PARAM));
     }
 
     void drawOpControls() {
-        // const int x = mm2px(20.32f);
-        // const int y = mm2px(45.72f);
-        //
-        // std::vector<Vec> opPositions;
-        //
-        // for (int op = 0; op < OPERATOR_COUNT; ++op) {
-        //    // TODO: clean up and move to helper function
-        //
-        //    double angle = M_PI_2 + op * 2 * M_PI / OPERATOR_COUNT;
-        //    float opX = std::cos(angle) * opRadius;
-        //    float opY = std::sin(angle) * opRadius;
-        //
-        //    opPositions.push_back(Vec(x + opX, y + opY));
-        //
-        //    addParam(createLightParamCentered<VCVLightBezel<MediumSimpleLight<GreenLight>>>(
-        //        Vec(x + opX, y + opY), module, PostHumanFM::SELECT_PARAMS + op, PostHumanFM::SELECT_LIGHTS + op));
-        //
-        //    // addChild(createParamCentered<RoundBlackKnob>(Vec(RACK_GRID_WIDTH + 40 * op, 240), module,
-        //    //                                              PostHumanFM::MULT_PARAMS + op));
-        //    // addChild(createParamCentered<RoundBlackKnob>(Vec(RACK_GRID_WIDTH + 40 * op, 270), module,
-        //    //                                              PostHumanFM::LEVEL_PARAMS + op));
-        //    //
-        //    // addChild(createParamCentered<Trimpot>(Vec(RACK_GRID_WIDTH + 40 * op, 300), module,
-        //    //                                      PostHumanFM::LEVEL_CV_PARAMS + op));
-        //    // addChild(createInputCentered<PJ301MPort>(Vec(RACK_GRID_WIDTH + 40 * op, 350), module,
-        //    //                                         PostHumanFM::LEVEL_INPUTS + op));)
-        //}
-        //
-        //// for (int i = 0; i < OPERATOR_COUNT; ++i) {
-        ////     drawOperator(51.6467f + 22.014f * i, 41.f, i);
-        //// }
-        //
-        //// TODO: add the positions to a vector and do this in a loop
-
-        // todo: tempo
         auto* fmModule = dynamic_cast<PostHumanFM*>(module);
 
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
@@ -402,27 +310,25 @@ struct PostHumanFMWidget : ModuleWidget {
             auto* display = createWidget<WavetableDisplay>(displayPositions[i]);
             display->wavetable = &fmModule->operators[i].wavetable;
             display->wavePos = &fmModule->operators[i].lastWavePos;
+            display->op = i;
 
             addChild(display);
 
-            addParam(
-                createParamCentered<RoundBlackKnob>(multPositions[i].paramPos, module, PostHumanFM::MULT_PARAMS + i));
-            addParam(
-                createParamCentered<Trimpot>(multPositions[i].cvParamPos, module, PostHumanFM::MULT_CV_PARAMS + i));
+            addParam(createParamCentered<ShinyKnob>(multPositions[i].paramPos, module, PostHumanFM::MULT_PARAMS + i));
+            addParam(createParamCentered<AttenuatorKnob>(multPositions[i].cvParamPos, module,
+                                                         PostHumanFM::MULT_CV_PARAMS + i));
             addInput(
                 createInputCentered<DarkPJ301MPort>(multPositions[i].inputPos, module, PostHumanFM::MULT_INPUTS + i));
 
-            addParam(
-                createParamCentered<RoundBlackKnob>(levelPositions[i].paramPos, module, PostHumanFM::LEVEL_PARAMS + i));
-            addParam(
-                createParamCentered<Trimpot>(levelPositions[i].cvParamPos, module, PostHumanFM::LEVEL_CV_PARAMS + i));
+            addParam(createParamCentered<ShinyKnob>(levelPositions[i].paramPos, module, PostHumanFM::LEVEL_PARAMS + i));
+            addParam(createParamCentered<AttenuatorKnob>(levelPositions[i].cvParamPos, module,
+                                                         PostHumanFM::LEVEL_CV_PARAMS + i));
             addInput(
                 createInputCentered<DarkPJ301MPort>(levelPositions[i].inputPos, module, PostHumanFM::LEVEL_INPUTS + i));
 
-            addParam(
-                createParamCentered<RoundBlackKnob>(wavePositions[i].paramPos, module, PostHumanFM::WAVE_PARAMS + i));
-            addParam(
-                createParamCentered<Trimpot>(wavePositions[i].cvParamPos, module, PostHumanFM::WAVE_CV_PARAMS + i));
+            addParam(createParamCentered<ShinyKnob>(wavePositions[i].paramPos, module, PostHumanFM::WAVE_PARAMS + i));
+            addParam(createParamCentered<AttenuatorKnob>(wavePositions[i].cvParamPos, module,
+                                                         PostHumanFM::WAVE_CV_PARAMS + i));
             addInput(
                 createInputCentered<DarkPJ301MPort>(wavePositions[i].inputPos, module, PostHumanFM::WAVE_INPUTS + i));
 
@@ -430,64 +336,13 @@ struct PostHumanFMWidget : ModuleWidget {
                 if (i == j)
                     continue;
                 addChild(createConnectionLight(opSelectorPositions[i], opSelectorPositions[j], module,
-                                               PostHumanFM::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j));
+                                               PostHumanFM::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j, i, j));
             }
 
-            addParam(createParamCentered<VCVButton>(opSelectorPositions[i], module, PostHumanFM::SELECT_PARAMS + i));
+            addParam(createLightParamCentered<VCVLightBezel<RedLight>>(
+                opSelectorPositions[i], module, PostHumanFM::SELECT_PARAMS + i, PostHumanFM::SELECT_LIGHTS + i));
         }
-
-        // addParam(createParamCentered<RoundBlackKnob>(waveParamPos[0], module, PostHumanFM::WAVE_PARAMS + 0));
-        // addParam(createParamCentered<Trimpot>(waveCvParamPos[0], module, PostHumanFM::WAVE_CV_PARAMS + 0));
-        // addInput(createInputCentered<DarkPJ301MPort>(waveInputPos[0], module, PostHumanFM::WAVE_INPUTS + 0));
-        //
-        // addParam(createParamCentered<RoundBlackKnob>(levelParamPos[0], module, PostHumanFM::LEVEL_PARAMS + 0));
-        // addParam(createParamCentered<Trimpot>(levelCvParamPos[0], module, PostHumanFM::LEVEL_CV_PARAMS + 0));
-        // addInput(createInputCentered<DarkPJ301MPort>(levelInputPos[0], module, PostHumanFM::LEVEL_INPUTS + 0));
-
-        // for (int i = 0; i < OPERATOR_COUNT; ++i) {
-        //     for (int j = 0; j < OPERATOR_COUNT; ++j) {
-        //         if (i == j)
-        //             continue;
-        //         addChild(createConnectionLight(opPositions[i], opPositions[j], module,
-        //                                        PostHumanFM::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j));
-        //     }
-        // }
     }
-
-    // void drawOperator(float x, float y, float op) {
-    //     // TODO: CV percentage on a multi-knob like Serum
-    //
-    //     auto* fmModule = dynamic_cast<PostHumanFM*>(module);
-    //
-    //     addChild(display);
-    //
-    //     addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x, y)), module, PostHumanFM::MULT_INPUTS + op));
-    //     // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 7, y + 15)), module, PostHumanFM::WAVE_CV_PARAMS +
-    //     op)); addChild(createParamCentered<CKSSThreeHorizontal>(mm2px(Vec(x, y)), module, PostHumanFM::WAVE_PARAMS +
-    //     op)); addChild(
-    //         createParamCentered<RoundBlackKnob>(mm2px(Vec(x + 5.5, y + 40)), module, PostHumanFM::LEVEL_PARAMS +
-    //         op));
-    //     addChild(
-    //         createParamCentered<RoundBlackKnob>(mm2px(Vec(x - 5.5, y + 55)), module, PostHumanFM::MULT_PARAMS + op));
-    //
-    //     // addChild(createParamCentered<Trimpot>(mm2px(Vec(x - 5.5, y + 57)), module, PostHumanFM::MULT_CV_PARAMS +
-    //     // op)); addChild(createParamCentered<Trimpot>(mm2px(Vec(x + 5.5, y + 57)), module,
-    //     PostHumanFM::LEVEL_CV_PARAMS
-    //     // + op));
-    //
-    //     addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x + 5.5, y + 70)), module, PostHumanFM::LEVEL_INPUTS +
-    //     op)); addChild(createInputCentered<PJ301MPort>(mm2px(Vec(x - 5.5, y + 70)), module, PostHumanFM::MULT_INPUTS
-    //     + op));
-    //
-    //     // addChild(createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0), module, PostHumanFM::MULT_PARAMS + i));
-    //     // addChild(createParamCentered<RoundBlackKnob>(Vec(x0 + i * 35, y0 + 40), module, PostHumanFM::LEVEL_PARAMS
-    //     +
-    //     // i)); addChild(createParamCentered<Trimpot>(Vec(x0 + i * 35, y0 + 80), module, PostHumanFM::LEVEL_CV_PARAMS
-    //     +
-    //     // i)); addChild(createInputCentered<PJ301MPort>(Vec(x0 + i * 35, y0 + 120), module,
-    //     PostHumanFM::LEVEL_INPUTS +
-    //     // i));
-    // }
 
     void drawOperators() {
         float x0 = 30;
@@ -497,89 +352,10 @@ struct PostHumanFMWidget : ModuleWidget {
         }
     }
 
-    // void setKnobOperator(int newOperator) {
-    //     if (!module)
-    //         return;
-    //
-    //    // todo: loop through both knobs
-    //
-    //    for (int param = PostHumanFM::MULT_PARAMS; param < PostHumanFM::MULT_PARAMS_LAST; ++param) {
-    //        auto* oldKnob = getParam(PostHumanFM::MULT_PARAMS + currentOperator);
-    //        oldKnob->hide();
-    //
-    //        auto* newKnob = getParam(PostHumanFM::MULT_PARAMS + newOperator);
-    //        newKnob->show();
-    //    }
-    //
-    //    for (int param = PostHumanFM::LEVEL_PARAMS; param < PostHumanFM::LEVEL_PARAMS_LAST; ++param) {
-    //        auto* oldKnob = getParam(PostHumanFM::LEVEL_PARAMS + currentOperator);
-    //        oldKnob->hide();
-    //
-    //        auto* newKnob = getParam(PostHumanFM::LEVEL_PARAMS + newOperator);
-    //        newKnob->show();
-    //    }
-    //}
-    //
-    // void step() override {
-    //    if (!module)
-    //        return;
-    //
-    //    auto* phModule = dynamic_cast<PostHumanFM*>(module);
-    //
-    //    auto moduleCurrentOperator = static_cast<PostHumanFM*>(module)->currentOperator;
-    //
-    //    if (moduleCurrentOperator != currentOperator) {
-    //        setKnobOperator(moduleCurrentOperator);
-    //        currentOperator = moduleCurrentOperator;
-    //    }
-    //
-    //    ModuleWidget::step();
-    //}
-
-    // Layout
-
     constexpr static float opRadius = 48.f;
 
     constexpr static float pi = M_PI;
-
-    // constexpr float opX(int op) {
-    //     switch (op) {
-    //     case 0:
-    //         return opRadius * cos(pi / 6);
-    //     case 1:
-    //         return opRadius * cos(pi / 2);
-    //     case 2:
-    //         return opRadius * cos(5 * pi / 6);
-    //     case 3:
-    //         return opRadius * cos(7 * pi / 6);
-    //     case 4:
-    //         return opRadius * cos(3 * pi / 2);
-    //     case 5:
-    //         return opRadius * cos(11 * pi / 6);
-    //     default:
-    //         return 0;
-    //     }
-    // }
-    //
-    // constexpr float opY(int op) {
-    //    switch (op) {
-    //    case 0:
-    //        return opRadius * sin(pi / 6);
-    //    case 1:
-    //        return opRadius * sin(pi / 2);
-    //    case 2:
-    //        return opRadius * sin(5 * pi / 6);
-    //    case 3:
-    //        return opRadius * sin(7 * pi / 6);
-    //    case 4:
-    //        return opRadius * sin(3 * pi / 2);
-    //    case 5:
-    //        return opRadius * sin(11 * pi / 6);
-    //    default:
-    //        return 0;
-    //    }
-    //}
-}; // namespace ph
+};
 
 } // namespace ph
 

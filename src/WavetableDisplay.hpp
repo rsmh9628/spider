@@ -18,6 +18,8 @@ public:
 
     Wavetable* wavetable = nullptr;
     float* wavePos = nullptr;
+
+    int op = 0;
 };
 
 } // namespace ph

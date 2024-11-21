@@ -19,7 +19,6 @@ void Wavetable::init() {
         float p = i / static_cast<float>(wavelength);
         samples[wavelength + i] = (p < 0.5f) ? 1 : -1;
     }
-    interpolate();
 }
 
 void Wavetable::open(const std::string& filename) {
@@ -32,7 +31,6 @@ void Wavetable::open(const std::string& filename) {
     samples.resize(wav.totalPCMFrameCount);
     drwav_read_pcm_frames_f32(&wav, wav.totalPCMFrameCount, samples.data());
     drwav_uninit(&wav);
-    interpolate();
 }
 
 void Wavetable::openDialog() {
@@ -43,36 +41,6 @@ void Wavetable::openDialog() {
     std::string pathStr(path);
     std::free(path);
     open(pathStr);
-}
-
-void Wavetable::interpolate() {
-    size_t length = samples.size();
-
-    interpolatedSamples.clear();
-    interpolatedSamples.resize(samples.size());
-
-    std::vector<float> timeDomainSamples(wavelength);
-    std::vector<float> frequencyDomainSamples(2 * wavelength);
-    std::vector<float> interpolatedFrequencyDomainSamples(2 * wavelength);
-
-    dsp::RealFFT fft(wavelength);
-
-    float waveCnt = waveCount();
-    for (size_t i = 0; i < waveCnt; i++) {
-        // Compute FFT of wave
-        for (size_t j = 0; j < wavelength; j++) {
-            timeDomainSamples[j] = samples[wavelength * i + j] / wavelength;
-        }
-
-        fft.rfft(timeDomainSamples.data(), frequencyDomainSamples.data());
-
-        // Compute FFT-filtered version of the wave
-        for (size_t j = 0; j < wavelength; j++) {
-            interpolatedFrequencyDomainSamples[2 * j + 0] = frequencyDomainSamples[2 * j + 0];
-            interpolatedFrequencyDomainSamples[2 * j + 1] = frequencyDomainSamples[2 * j + 1];
-        }
-        fft.irfft(interpolatedFrequencyDomainSamples.data(), &interpolatedSamples[wavelength * i]);
-    }
 }
 
 } // namespace ph

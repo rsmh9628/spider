@@ -4,6 +4,8 @@
 
 namespace ph {
 
+enum class ToggleEdgeResult { ADDED, REMOVED, REMOVED_REV, CYCLE };
+
 template <typename T>
 class DirectedGraph {
     static_assert(std::is_integral<T>::value, "T must be an integral type");
@@ -17,9 +19,29 @@ public:
         : adjList(vertices)
         , reverseAdjList(vertices) {}
 
-    void addEdge(T src, T dest) {
+    ToggleEdgeResult addEdge(T src, T dest) {
         adjList[src].push_back(dest);
         reverseAdjList[dest].push_back(src);
+
+        if (isCyclic()) {
+            adjList[src].pop_back();
+            reverseAdjList[dest].pop_back();
+            return ToggleEdgeResult::CYCLE;
+        }
+
+        return ToggleEdgeResult::ADDED;
+    }
+
+    ToggleEdgeResult toggleEdge(T src, T dest) {
+        if (hasEdge(src, dest)) {
+            removeEdge(src, dest);
+            return ToggleEdgeResult::REMOVED;
+        } else if (hasEdge(dest, src)) {
+            removeEdge(dest, src);
+            return ToggleEdgeResult::REMOVED_REV;
+        } else {
+            return addEdge(src, dest);
+        }
     }
 
     void removeEdge(T src, T dest) {
@@ -28,6 +50,36 @@ public:
 
         auto& reverseList = reverseAdjList[dest];
         reverseList.erase(std::remove(reverseList.begin(), reverseList.end(), src), reverseList.end());
+    }
+
+    bool isCyclicHelper(T vertex, std::vector<bool>& visited, std::vector<bool>& recStack) {
+        if (!visited[vertex]) {
+            visited[vertex] = true;
+            recStack[vertex] = true;
+
+            for (const auto& dest : adjList[vertex]) {
+                if (!visited[dest] && isCyclicHelper(dest, visited, recStack)) {
+                    return true;
+                } else if (recStack[dest]) {
+                    return true;
+                }
+            }
+        }
+
+        recStack[vertex] = false;
+        return false;
+    }
+
+    bool isCyclic() {
+        std::vector<bool> visited(adjList.size(), false);
+        std::vector<bool> recStack(adjList.size(), false);
+
+        for (T i = 0; i < adjList.size(); i++) {
+            if (isCyclicHelper(i, visited, recStack)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     std::vector<T> topologicalSort() {

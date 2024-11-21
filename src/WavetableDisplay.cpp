@@ -1,4 +1,5 @@
 #include "WavetableDisplay.hpp"
+#include "Colour.hpp"
 
 namespace ph {
 
@@ -18,6 +19,25 @@ void WavetableDisplay::drawLayer(const DrawArgs& args, int layer) {
     if (layer != 1)
         return;
 
+    nvgScissor(args.vg, RECT_ARGS(args.clipBox));
+
+    nvgBeginPath(args.vg);
+    nvgRect(args.vg, 0, 0, box.size.x, box.size.y);
+    nvgFillPaint(args.vg, nvgLinearGradient(args.vg, 0, 0, box.size.x, 32, nvgRGB(7, 7, 9), nvgRGB(23, 12, 94)));
+    nvgFill(args.vg);
+
+    auto innerBox = box;
+    innerBox.pos.x += 4;
+    innerBox.pos.y += 4;
+    innerBox.size.x -= 8;
+    innerBox.size.y -= 8;
+
+    nvgBeginPath(args.vg);
+    nvgRect(args.vg, 2, 2, box.size.x - 4, box.size.y - 4);
+    nvgStrokeColor(args.vg, OPERATOR_COLOURS[op]);
+    nvgStrokeWidth(args.vg, 0.5f);
+    nvgStroke(args.vg);
+
     float wavePos = *this->wavePos;
 
     float pos = wavePos - std::trunc(wavePos);
@@ -35,23 +55,29 @@ void WavetableDisplay::drawLayer(const DrawArgs& args, int layer) {
         float index = crossfade(index0, index1, pos);
 
         Vec point;
+
         point.x = (float(i) / wavetable->wavelength);
         point.y = 0.5f - 0.5f * index;
 
-        point = box.size * point;
+        point = innerBox.size * point;
 
         if (i == 0) {
-            nvgMoveTo(args.vg, point.x, point.y);
+            nvgMoveTo(args.vg, point.x + 4, point.y + 4);
         } else {
-            nvgLineTo(args.vg, point.x, point.y);
+            nvgLineTo(args.vg, point.x + 4, point.y + 4);
         }
     }
 
     // nvgMiterLimit(args.vg, 2.f);
-    nvgStrokeWidth(args.vg, 1.5f);
+    nvgStrokeWidth(args.vg, 1.f);
     nvgLineCap(args.vg, NVG_ROUND);
-    nvgStrokeColor(args.vg, nvgRGB(0xff, 0x00, 0xff));
+    nvgStrokeColor(args.vg, OPERATOR_COLOURS[op]);
     nvgStroke(args.vg);
+
+    // nvgFillPaint(args.vg,
+    //              nvgLinearGradient(args.vg, 0, 0, 0, innerBox.size.y / 2, OPERATOR_COLOURS[op], nvgRGBA(0, 0, 0,
+    //              0)));
+    // nvgFill(args.vg);
 }
 
 void WavetableDisplay::onButton(const ButtonEvent& e) {

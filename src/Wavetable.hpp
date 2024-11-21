@@ -14,8 +14,12 @@ public:
     void open(const std::string& filename);
     void openDialog();
 
-    // TODO: Not sure if this is gonna work, we'll try it
-    float sampleAt(size_t wave, size_t sample) const { return interpolatedSamples[(wavelength * wave) + sample]; }
+    float sampleAt(size_t wave, size_t sample) const {
+        if (sample >= samples.size()) {
+            return 0.f;
+        }
+        return samples[(wavelength * wave) + sample];
+    }
 
     size_t waveCount() const {
         if (wavelength == 0) {
@@ -31,9 +35,6 @@ public:
 private:
     // TODO: probably don't need both
     std::vector<float> samples;
-    std::vector<float> interpolatedSamples;
-
-    void interpolate();
 };
 
 } // namespace ph
