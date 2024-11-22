@@ -288,9 +288,6 @@ struct PostHumanFMWidget : ModuleWidget {
         addChild(createWidget<ScrewBlack>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
         addChild(createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-        if (!module)
-            return;
-
         drawOpControls();
 
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
@@ -308,8 +305,11 @@ struct PostHumanFMWidget : ModuleWidget {
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             // TODO: Clean this up can use only one set of addparam addinput etc. with clever
             auto* display = createWidget<WavetableDisplay>(displayPositions[i]);
-            display->wavetable = &fmModule->operators[i].wavetable;
-            display->wavePos = &fmModule->operators[i].lastWavePos;
+
+            if (module) {
+                display->wavetable = &fmModule->operators[i].wavetable;
+                display->wavePos = &fmModule->operators[i].lastWavePos;
+            }
             display->op = i;
 
             addChild(display);
@@ -332,11 +332,13 @@ struct PostHumanFMWidget : ModuleWidget {
             addInput(
                 createInputCentered<DarkPJ301MPort>(wavePositions[i].inputPos, module, PostHumanFM::WAVE_INPUTS + i));
 
-            for (int j = 0; j < OPERATOR_COUNT; ++j) {
-                if (i == j)
-                    continue;
-                addChild(createConnectionLight(opSelectorPositions[i], opSelectorPositions[j], module,
-                                               PostHumanFM::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j, i, j));
+            if (module) {
+                for (int j = 0; j < OPERATOR_COUNT; ++j) {
+                    if (i == j)
+                        continue;
+                    addChild(createConnectionLight(opSelectorPositions[i], opSelectorPositions[j], module,
+                                                   PostHumanFM::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j, i, j));
+                }
             }
 
             addParam(createLightParamCentered<VCVLightBezel<RedLight>>(

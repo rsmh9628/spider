@@ -14,8 +14,6 @@ void WavetableDisplay::draw(const DrawArgs& args) {
 }
 
 void WavetableDisplay::drawLayer(const DrawArgs& args, int layer) {
-    if (!wavetable)
-        return;
     if (layer != 1)
         return;
 
@@ -37,6 +35,9 @@ void WavetableDisplay::drawLayer(const DrawArgs& args, int layer) {
     nvgStrokeColor(args.vg, OPERATOR_COLOURS[op]);
     nvgStrokeWidth(args.vg, 0.5f);
     nvgStroke(args.vg);
+
+    if (!wavetable)
+        return;
 
     float wavePos = *this->wavePos;
 
