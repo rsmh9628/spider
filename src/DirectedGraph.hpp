@@ -4,7 +4,7 @@
 
 namespace ph {
 
-enum class ToggleEdgeResult { ADDED, REMOVED, REMOVED_REV, CYCLE };
+enum class ToggleEdgeResult { ADDED, REMOVED, SWAPPED, CYCLE };
 
 template <typename T>
 class DirectedGraph {
@@ -38,7 +38,10 @@ public:
             return ToggleEdgeResult::REMOVED;
         } else if (hasEdge(dest, src)) {
             removeEdge(dest, src);
-            return ToggleEdgeResult::REMOVED_REV;
+            if (addEdge(src, dest) == ToggleEdgeResult::ADDED) {
+                return ToggleEdgeResult::SWAPPED;
+            } else
+                return ToggleEdgeResult::CYCLE;
         } else {
             return addEdge(src, dest);
         }

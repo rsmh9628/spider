@@ -109,6 +109,10 @@ struct ConnectionLight : ModuleLightWidget {
         nvgFill(args.vg);
     }
 
+    // Tooltips are not useful for this widget
+    void onEnter(const EnterEvent& e) override { return; }
+    void onLeave(const LeaveEvent& e) override { return; }
+
     void step() override {
         if (trigger.process(getLight(0)->getBrightness())) {
             animTime = 0.0f;

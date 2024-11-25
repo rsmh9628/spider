@@ -139,7 +139,9 @@ struct PostHumanFM : Module {
                 if (selectedOperator == i) {
                     carriers[i] = !carriers[i];
                     getLight(CARRIER_LIGHTS + i).setBrightness(carriers[i] ? 1.0f : 0.0f);
+                    updateTooltips(i, false);
                     selectedOperator = -1;
+
                 } else if (selectedOperator > -1) {
                     auto result = algorithmGraph.toggleEdge(selectedOperator, i);
 
@@ -149,25 +151,51 @@ struct PostHumanFM : Module {
                         continue;
                     }
 
-                    int lightIndex = (result == ToggleEdgeResult::REMOVED_REV)
-                                         ? (CONNECTION_LIGHTS + OPERATOR_COUNT * i + selectedOperator)
-                                         : (CONNECTION_LIGHTS + OPERATOR_COUNT * selectedOperator + i);
-
-                    getLight(lightIndex).setBrightness((result == ToggleEdgeResult::ADDED) ? 1.0f : 0.0f);
-
+                    if (result == ToggleEdgeResult::ADDED) {
+                        getLight(CONNECTION_LIGHTS + OPERATOR_COUNT * selectedOperator + i).setBrightness(1.0f);
+                    } else if (result == ToggleEdgeResult::SWAPPED) {
+                        getLight(CONNECTION_LIGHTS + OPERATOR_COUNT * i + selectedOperator).setBrightness(0.0f);
+                        getLight(CONNECTION_LIGHTS + OPERATOR_COUNT * selectedOperator + i).setBrightness(1.0f);
+                    } else if (result == ToggleEdgeResult::REMOVED) {
+                        getLight(CONNECTION_LIGHTS + OPERATOR_COUNT * selectedOperator + i).setBrightness(0.0f);
+                    }
                     topologicalOrder = algorithmGraph.topologicalSort();
 
                     for (auto& op : operators) {
                         op.reset(); // Reset phase of all operators
                     }
-
+                    updateTooltips(selectedOperator, false);
                     selectedOperator = -1;
 
                 } else {
                     selectedOperator = i;
+                    updateTooltips(i, true);
                 }
+            }
+        }
+    }
 
-                printf("Selected operator %d\n", i);
+    void updateTooltips(int op, bool select) {
+
+        std::string operatorString = "operator " + std::to_string(op + 1);
+        auto paramQuantity = getParamQuantity(SELECT_PARAMS + op);
+
+        if (select) {
+            paramQuantity->name =
+                (carriers[op] ? "Disable " : "Enable ") + std::string("operator ") + std::to_string(op + 1) + " output";
+        }
+
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            std::string operatorString = "operator " + std::to_string(i + 1);
+            paramQuantity = getParamQuantity(SELECT_PARAMS + i);
+            if (select) {
+                if (i == op)
+                    continue;
+
+                paramQuantity->name =
+                    algorithmGraph.hasEdge(op, i) ? "Demodulate " + operatorString : "Modulate " + operatorString;
+            } else {
+                paramQuantity->name = "Select " + operatorString;
             }
         }
     }
