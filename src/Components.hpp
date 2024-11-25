@@ -24,8 +24,8 @@ struct ConnectionLight : ModuleLightWidget {
         this->angle = atan2(p1.y - p0.y, p1.x - p0.x);
 
         // Calculate new endpoint on the edge of the button
-        p0 = p0.plus(14 * Vec(cos(angle), sin(angle)));
-        p1 = p1.minus(14 * Vec(cos(angle), sin(angle)));
+        p0 = p0.plus(10 * Vec(cos(angle), sin(angle)));
+        p1 = p1.minus(10 * Vec(cos(angle), sin(angle)));
 
         if (p0.x < p1.x || (p0.x == p1.x && p0.y < p1.y)) {
             start = p0;
@@ -180,5 +180,43 @@ struct AttenuatorKnob : Trimpot {
         bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/AttenuatorKnob_bg.svg")));
     }
 };
+
+struct RingLight : GrayModuleLightWidget {
+    RingLight(Vec pos, int op) {
+        this->box.pos = pos - Vec(radius, radius);
+        this->addBaseColor(OPERATOR_COLOURS[op]);
+        this->box.size = Vec(20, 20);
+    }
+
+    void drawBackground(const Widget::DrawArgs& args) override {
+        nvgBeginPath(args.vg);
+        nvgCircle(args.vg, radius, radius, radius);
+
+        nvgStrokeColor(args.vg, nvgRGB(50, 50, 50));
+        nvgStrokeWidth(args.vg, 1.f);
+        nvgStroke(args.vg);
+    }
+
+    void drawLight(const Widget::DrawArgs& args) override {
+        if (color.a > 0.0) {
+
+            nvgBeginPath(args.vg);
+            nvgCircle(args.vg, radius, radius, radius);
+
+            nvgStrokeColor(args.vg, color);
+            nvgStrokeWidth(args.vg, 1.f);
+            nvgStroke(args.vg);
+        }
+    }
+
+    float radius = 10.f;
+};
+
+RingLight* createRingLight(Vec pos, Module* module, int firstLightId, int op) {
+    auto* light = new RingLight(pos, op);
+    light->module = module;
+    light->firstLightId = firstLightId;
+    return light;
+}
 
 } // namespace ph

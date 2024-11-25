@@ -38,7 +38,12 @@ struct PostHumanFM : Module {
     };
 
     enum OutputId { AUDIO_OUTPUT, OUTPUTS_LEN };
-    enum LightId { ENUMS(SELECT_LIGHTS, OPERATOR_COUNT), ENUMS(CONNECTION_LIGHTS, CONNECTION_COUNT), LIGHTS_LEN };
+    enum LightId {
+        ENUMS(SELECT_LIGHTS, OPERATOR_COUNT),
+        ENUMS(CARRIER_LIGHTS, OPERATOR_COUNT),
+        ENUMS(CONNECTION_LIGHTS, CONNECTION_COUNT),
+        LIGHTS_LEN
+    };
 
     struct FMOperator {
         void generate(float freq, float wavePos, float level, float sampleTime, float multiplier, float modulation) {
@@ -132,6 +137,8 @@ struct PostHumanFM : Module {
 
             if (selectTriggered) {
                 if (selectedOperator == i) {
+                    carriers[i] = !carriers[i];
+                    getLight(CARRIER_LIGHTS + i).setBrightness(carriers[i] ? 1.0f : 0.0f);
                     selectedOperator = -1;
                 } else if (selectedOperator > -1) {
                     auto result = algorithmGraph.toggleEdge(selectedOperator, i);
@@ -216,11 +223,12 @@ struct PostHumanFM : Module {
 
         float output = 0.f;
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
-            if (algorithmGraph.getAdjacentVertices(i).empty()) {
+            if (carriers[i]) {
                 output += operators[i].out;
             }
         }
 
+        // todo: scale instead of brickwall
         if (output > 1.f) {
             output = 1.f;
         } else if (output < -1.f) {
@@ -231,6 +239,7 @@ struct PostHumanFM : Module {
     }
 
     std::array<FMOperator, OPERATOR_COUNT> operators; // todo: DAG
+    std::array<bool, OPERATOR_COUNT> carriers = {};
     std::array<dsp::BooleanTrigger, OPERATOR_COUNT> operatorTriggers;
     std::vector<int> topologicalOrder = {0, 1, 2, 3, 4, 5};
     DirectedGraph<int> algorithmGraph{OPERATOR_COUNT};
@@ -341,8 +350,9 @@ struct PostHumanFMWidget : ModuleWidget {
                 }
             }
 
-            addParam(createLightParamCentered<VCVLightBezel<RedLight>>(
+            addParam(createLightParamCentered<VCVLightButton<RedLight>>(
                 opSelectorPositions[i], module, PostHumanFM::SELECT_PARAMS + i, PostHumanFM::SELECT_LIGHTS + i));
+            addChild(createRingLight(opSelectorPositions[i], module, PostHumanFM::CARRIER_LIGHTS + i, i));
         }
     }
 
