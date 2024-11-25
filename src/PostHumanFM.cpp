@@ -46,12 +46,12 @@ struct PostHumanFM : Module {
     };
 
     struct FMOperator {
-        void generate(float freq, float wavePos, float level, float sampleTime, float multiplier, float modulation) {
+        void generate(float freq, float wavePos, float level, float sampleTime, float modulation) {
             wavePos *= (wavetable.waveCount() - 1);
 
             lastWavePos = wavePos;
 
-            float phaseIncrement = (multiplier * freq) * sampleTime;
+            float phaseIncrement = (freq)*sampleTime;
 
             phase = phase + phaseIncrement + modulation;
 
@@ -104,7 +104,7 @@ struct PostHumanFM : Module {
             std::string opStr = std::to_string(op + 1);
 
             configButton(SELECT_PARAMS + op, "Select operator " + opStr);
-            configParam(MULT_PARAMS + op, -3, 3, 0.f, "Operator " + opStr + " multiplier", "x", 2.f);
+            configParam(MULT_PARAMS + op, -12, 12, 0.f, "Operator " + opStr + " coarse pitch", " semitones");
             configParam(LEVEL_PARAMS + op, 0.f, 1.f, 0.f, "Operator " + opStr + " level", "%", 0.f, 100.f);
             configParam(WAVE_PARAMS + op, 0.f, 1.f, 0.f, "Operator " + opStr + " wavetable position", "%", 0.f, 100.f,
                         0.f);
@@ -210,33 +210,47 @@ struct PostHumanFM : Module {
         //// todo: this can eventually be parallelised with SIMD once independent carriers can be found from the
         /// graph
 
+        float totalLevel = 0.f;
+        std::array<float, OPERATOR_COUNT> levels = {};
+
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            float level = getParam(LEVEL_PARAMS + i).getValue();
+            float levelCv = getParam(LEVEL_CV_PARAMS + i).getValue();
+
+            if (getInput(LEVEL_INPUTS + i).isConnected()) {
+                level += levelCv * getInput(LEVEL_INPUTS + i).getVoltage() / 10.f;
+            }
+
+            levels[i] = level;
+            totalLevel += level;
+        }
+
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             int op = topologicalOrder[i];
 
-            auto& multParam = getParam(MULT_PARAMS + op);
+            if (totalLevel > 1.f) {
+                levels[op] = levels[op] / totalLevel;
+            }
+            levels[op] = clamp(levels[op], 0.f, 1.f);
 
-            float mult = dsp::exp2_taylor5(multParam.getValue());
-            float level = getParam(LEVEL_PARAMS + op).getValue();
+            auto& coarseParam = getParam(MULT_PARAMS + op);
+
+            float coarse = coarseParam.getValue();
+
             float wavePos = getParam(WAVE_PARAMS + op).getValue();
 
             float multCv = getParam(MULT_CV_PARAMS + op).getValue();
-            float levelCv = getParam(LEVEL_CV_PARAMS + op).getValue();
             float waveCv = getParam(WAVE_CV_PARAMS + op).getValue();
 
             if (getInput(MULT_INPUTS + op).isConnected()) {
-                mult += multCv * getInput(MULT_INPUTS + op).getVoltage() / 10.f;
-            }
-
-            if (getInput(LEVEL_INPUTS + op).isConnected()) {
-                level += levelCv * getInput(LEVEL_INPUTS + op).getVoltage() / 10.F;
+                coarse += multCv * getInput(MULT_INPUTS + op).getVoltage() / 10.f;
             }
 
             if (getInput(WAVE_INPUTS + op).isConnected()) {
                 wavePos += waveCv * getInput(WAVE_INPUTS + op).getVoltage() / 10.f;
             }
 
-            mult = clamp(mult, 0.125, 8.0f);
-            level = clamp(level, 0.f, 1.f);
+            // mult = clamp(mult, 0.125, 8.0f);
             wavePos = clamp(wavePos, 0.f, 1.f);
 
             const auto& modulators = algorithmGraph.getAdjacentVerticesRev(op);
@@ -246,7 +260,10 @@ struct PostHumanFM : Module {
                 modulation += operators[modulator].out;
             }
 
-            operators[op].generate(freq, wavePos, level, mult, args.sampleTime, modulation);
+            float coarseExponent = coarse / 12.0f;
+            freq *= dsp::exp2_taylor5(coarseExponent);
+
+            operators[op].generate(freq, wavePos, levels[op], args.sampleTime, modulation);
         }
 
         float output = 0.f;
@@ -256,7 +273,6 @@ struct PostHumanFM : Module {
             }
         }
 
-        // todo: scale instead of brickwall
         if (output > 1.f) {
             output = 1.f;
         } else if (output < -1.f) {

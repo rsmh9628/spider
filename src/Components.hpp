@@ -71,7 +71,7 @@ struct ConnectionLight : ModuleLightWidget {
 
         nvgAlpha(args.vg, getLight(0)->getBrightness());
 
-        nvgStrokeColor(args.vg, OPERATOR_COLOURS[op0]);
+        nvgStrokeColor(args.vg, color::mult(OPERATOR_COLOURS[op0], 0.6f));
         nvgStroke(args.vg);
 
         nvgStrokePaint(args.vg, nvgRadialGradient(args.vg, indicatorPos.x, indicatorPos.y, 0.0f, indicatorRadius,
