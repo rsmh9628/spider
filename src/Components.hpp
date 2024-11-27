@@ -52,7 +52,11 @@ struct ConnectionLight : ModuleLightWidget {
 
         nvgAlpha(args.vg, 1.0f);
 
-        nvgStrokeColor(args.vg, nvgRGB(50, 50, 50));
+        NVGcolor strokeColour = nvgRGB(50, 50, 50);
+        if (getLight(0)->getBrightness() > 0) {
+            strokeColour = nvgRGB(0, 0, 0);
+        }
+        nvgStrokeColor(args.vg, strokeColour);
 
         nvgMoveTo(args.vg, start.x, start.y);
         nvgLineTo(args.vg, end.x, end.y);
@@ -71,11 +75,11 @@ struct ConnectionLight : ModuleLightWidget {
 
         nvgAlpha(args.vg, getLight(0)->getBrightness());
 
-        nvgStrokeColor(args.vg, color::mult(OPERATOR_COLOURS[op0], 0.6f));
+        nvgStrokeColor(args.vg, color::mult(OPERATOR_COLOURS[op0], 0.0f));
         nvgStroke(args.vg);
 
         nvgStrokePaint(args.vg, nvgRadialGradient(args.vg, indicatorPos.x, indicatorPos.y, 0.0f, indicatorRadius,
-                                                  nvgRGB(255, 255, 255), nvgRGB(0, 0, 0)));
+                                                  OPERATOR_COLOURS[op0], nvgRGB(0, 0, 0)));
         nvgStroke(args.vg);
     }
 
