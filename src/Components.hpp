@@ -75,11 +75,11 @@ struct ConnectionLight : ModuleLightWidget {
 
         nvgAlpha(args.vg, getLight(0)->getBrightness());
 
-        nvgStrokeColor(args.vg, color::mult(OPERATOR_COLOURS[op0], 0.0f));
+        nvgStrokeColor(args.vg, OPERATOR_COLOURS[op0]);
         nvgStroke(args.vg);
 
         nvgStrokePaint(args.vg, nvgRadialGradient(args.vg, indicatorPos.x, indicatorPos.y, 0.0f, indicatorRadius,
-                                                  OPERATOR_COLOURS[op0], nvgRGB(0, 0, 0)));
+                                                  nvgRGB(255, 255, 255), nvgRGB(0, 0, 0)));
         nvgStroke(args.vg);
     }
 
@@ -107,10 +107,35 @@ struct ConnectionLight : ModuleLightWidget {
         nvgFillPaint(args.vg,
                      nvgBoxGradient(args.vg, x, y, w, h, 0.0f, h * 0.5f,
                                     rack::color::mult(OPERATOR_COLOURS[op0], haloBrightness), nvgRGBA(0, 0, 0, 0)));
+        nvgFill(args.vg);
+
+        float indicatorWidth = w / 2;
+        if (x < 0) {
+            indicatorWidth -= x;
+        } else if (x > w) {
+            indicatorWidth -= w - x;
+        }
+
+        nvgFillPaint(args.vg,
+                     nvgBoxGradient(args.vg, indicatorPos.x - radius, indicatorPos.y - radius, indicatorWidth, h, 5.0f,
+                                    20.0f, rack::color::mult(nvgRGB(255, 255, 255), haloBrightness * indicatorAlpha),
+                                    nvgRGB(0, 0, 0)));
+        nvgFill(args.vg);
+
+        // float indicatorX = indicatorPos.x - radius;
+        // float indicatorY = indicatorPos.y - radius;
+        //
+        // float indicatorW = radius + radius;
+        // float indicatorH = radius + radius;
+        //
+        // nvgBeginPath(args.vg);
+        // nvgRoundedRect(args.vg, indicatorX - indicatorW, indicatorY - indicatorH, w * 3.f, h * 3.f, h * 1.0f);
+        // nvgFillPaint(args.vg, nvgRadialGradient(args.vg, indicatorPos.x, indicatorPos.y, 0.0f, indicatorRadius,
+        //                                          nvgRGB(255, 255, 255), nvgRGB(0, 0, 0)));
+        //
+        // nvgFill(args.vg);
 
         // nvgFillColor(args.vg, nvgRGB(255, 255, 255));
-
-        nvgFill(args.vg);
     }
 
     // Tooltips are not useful for this widget
@@ -131,6 +156,13 @@ struct ConnectionLight : ModuleLightWidget {
 
             float position = (flipped) ? 1.5f - animTime * 2.0f : animTime * 2.0f - 0.5f;
 
+            // Calculate indicatorAlpha based on position
+            if (position <= 0.5f) {
+                indicatorAlpha = position * 2.0f; // Smoothly transition from 0 to 1
+            } else {
+                indicatorAlpha = (1.0f - position) * 2.0f; // Smoothly transition from 1 to 0
+            }
+
             indicatorPos = end * position;
         }
 
@@ -148,6 +180,7 @@ private:
     int op1 = 0;
     float animTime = 0.0f;
     Vec indicatorPos = {0, 0};
+    float indicatorAlpha = 1.0f;
     float indicatorRadius;
 
     float alpha = 1.f;

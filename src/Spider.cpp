@@ -15,7 +15,7 @@ constexpr int CONNECTION_COUNT = OPERATOR_COUNT * OPERATOR_COUNT;
 
 namespace ph {
 
-struct PostHumanFM : Module {
+struct Spider : Module {
 
     enum ParamId {
         ENUMS(SELECT_PARAMS, OPERATOR_COUNT),
@@ -91,7 +91,10 @@ struct PostHumanFM : Module {
         Wavetable wavetable;
     };
 
-    PostHumanFM() { configParameters(); }
+    Spider() {
+        configParameters();
+        setConnectionLights();
+    }
 
     void configParameters() {
         config(PARAMS_LEN, INPUTS_LEN, OUTPUTS_LEN, LIGHTS_LEN);
@@ -121,10 +124,6 @@ struct PostHumanFM : Module {
 
             getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
             // getParamQuantity(MULT_PARAMS + op)->snapEnabled = true;
-        }
-
-        for (int conn = 0; conn < CONNECTION_COUNT; ++conn) {
-            configLight(CONNECTION_LIGHTS + conn);
         }
     }
 
@@ -250,7 +249,6 @@ struct PostHumanFM : Module {
                 wavePos += waveCv * getInput(WAVE_INPUTS + op).getVoltage() / 10.f;
             }
 
-            // mult = clamp(mult, 0.125, 8.0f);
             wavePos = clamp(wavePos, 0.f, 1.f);
 
             const auto& modulators = algorithmGraph.getAdjacentVerticesRev(op);
@@ -282,6 +280,61 @@ struct PostHumanFM : Module {
         getOutput(AUDIO_OUTPUT).setVoltage(5 * output);
     }
 
+    json_t* dataToJson() override {
+        json_t* rootJ = json_object();
+        json_object_set_new(rootJ, "algorithm", algorithmGraph.toJson());
+
+        json_t* topologicalOrderJ = json_array();
+        for (int i : topologicalOrder) {
+            json_array_append_new(topologicalOrderJ, json_integer(i));
+        }
+        json_object_set_new(rootJ, "topologicalOrder", topologicalOrderJ);
+
+        json_t* carriersJ = json_array();
+        for (bool carrier : carriers) {
+            json_array_append_new(carriersJ, json_boolean(carrier));
+        }
+        json_object_set_new(rootJ, "carriers", carriersJ);
+
+        json_t* wavetableArrayJ = json_array();
+        for (auto& op : operators) {
+            json_array_append_new(wavetableArrayJ, op.wavetable.toJson());
+        }
+        json_object_set_new(rootJ, "wavetables", wavetableArrayJ);
+
+        return rootJ;
+    }
+
+    void dataFromJson(json_t* rootJ) override {
+        json_t* algorithmJ = json_object_get(rootJ, "algorithm");
+        algorithmGraph.fromJson(algorithmJ);
+
+        json_t* topologicalOrderJ = json_object_get(rootJ, "topologicalOrder");
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            topologicalOrder[i] = json_integer_value(json_array_get(topologicalOrderJ, i));
+        }
+
+        json_t* carriersJ = json_object_get(rootJ, "carriers");
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            carriers[i] = json_boolean_value(json_array_get(carriersJ, i));
+        }
+
+        setConnectionLights();
+    }
+
+    void setConnectionLights() {
+        for (int i = 0; i < algorithmGraph.adjList.size(); ++i) {
+            for (int j = 0; j < algorithmGraph.adjList[i].size(); ++j) {
+                int lightId = CONNECTION_LIGHTS + i * OPERATOR_COUNT + algorithmGraph.adjList[i][j];
+                getLight(lightId).setBrightness(1.0f);
+            }
+        }
+
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            getLight(CARRIER_LIGHTS + i).setBrightness(carriers[i] ? 1.0f : 0.0f);
+        }
+    }
+
     std::array<FMOperator, OPERATOR_COUNT> operators; // todo: DAG
     std::array<bool, OPERATOR_COUNT> carriers = {};
     std::array<dsp::BooleanTrigger, OPERATOR_COUNT> operatorTriggers;
@@ -292,7 +345,7 @@ struct PostHumanFM : Module {
 };
 
 // TODO: Organise
-struct PostHumanFMWidget : ModuleWidget {
+struct SpiderWidget : ModuleWidget {
 
     // Multiple repeated params for each parameter and operator
     struct ParameterPositions {
@@ -332,7 +385,7 @@ struct PostHumanFMWidget : ModuleWidget {
     const Vec opSelectorPositions[OPERATOR_COUNT] = {mm2px(Vec(73.961, 47.245)),  mm2px(Vec(98.758, 47.245)),
                                                      mm2px(Vec(111.157, 60.146)), mm2px(Vec(98.758, 73.047)),
                                                      mm2px(Vec(73.962, 73.047)),  mm2px(Vec(61.563, 60.146))};
-    PostHumanFMWidget(PostHumanFM* module) {
+    SpiderWidget(Spider* module) {
         setModule(module);
         setPanel(createPanel(asset::plugin(pluginInstance, "res/PostHumanFM.svg")));
 
@@ -346,14 +399,14 @@ struct PostHumanFMWidget : ModuleWidget {
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
         }
 
-        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(65.193f, 117.008f)), module, PostHumanFM::VOCT_INPUT));
-        addChild(createOutputCentered<PJ301MPort>(mm2px(Vec(107.527f, 117.008f)), module, PostHumanFM::AUDIO_OUTPUT));
+        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(65.193f, 117.008f)), module, Spider::VOCT_INPUT));
+        addChild(createOutputCentered<PJ301MPort>(mm2px(Vec(107.527f, 117.008f)), module, Spider::AUDIO_OUTPUT));
 
-        addChild(createParamCentered<ShinyBigKnob>(mm2px(Vec(86.360f, 113.318f)), module, PostHumanFM::FREQ_PARAM));
+        addChild(createParamCentered<ShinyBigKnob>(mm2px(Vec(86.360f, 113.318f)), module, Spider::FREQ_PARAM));
     }
 
     void drawOpControls() {
-        auto* fmModule = dynamic_cast<PostHumanFM*>(module);
+        auto* fmModule = dynamic_cast<Spider*>(module);
 
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             // TODO: Clean this up can use only one set of addparam addinput etc. with clever
@@ -367,36 +420,33 @@ struct PostHumanFMWidget : ModuleWidget {
 
             addChild(display);
 
-            addParam(createParamCentered<ShinyKnob>(multPositions[i].paramPos, module, PostHumanFM::MULT_PARAMS + i));
-            addParam(createParamCentered<AttenuatorKnob>(multPositions[i].cvParamPos, module,
-                                                         PostHumanFM::MULT_CV_PARAMS + i));
-            addInput(
-                createInputCentered<DarkPJ301MPort>(multPositions[i].inputPos, module, PostHumanFM::MULT_INPUTS + i));
+            addParam(createParamCentered<ShinyKnob>(multPositions[i].paramPos, module, Spider::MULT_PARAMS + i));
+            addParam(
+                createParamCentered<AttenuatorKnob>(multPositions[i].cvParamPos, module, Spider::MULT_CV_PARAMS + i));
+            addInput(createInputCentered<DarkPJ301MPort>(multPositions[i].inputPos, module, Spider::MULT_INPUTS + i));
 
-            addParam(createParamCentered<ShinyKnob>(levelPositions[i].paramPos, module, PostHumanFM::LEVEL_PARAMS + i));
-            addParam(createParamCentered<AttenuatorKnob>(levelPositions[i].cvParamPos, module,
-                                                         PostHumanFM::LEVEL_CV_PARAMS + i));
-            addInput(
-                createInputCentered<DarkPJ301MPort>(levelPositions[i].inputPos, module, PostHumanFM::LEVEL_INPUTS + i));
+            addParam(createParamCentered<ShinyKnob>(levelPositions[i].paramPos, module, Spider::LEVEL_PARAMS + i));
+            addParam(
+                createParamCentered<AttenuatorKnob>(levelPositions[i].cvParamPos, module, Spider::LEVEL_CV_PARAMS + i));
+            addInput(createInputCentered<DarkPJ301MPort>(levelPositions[i].inputPos, module, Spider::LEVEL_INPUTS + i));
 
-            addParam(createParamCentered<ShinyKnob>(wavePositions[i].paramPos, module, PostHumanFM::WAVE_PARAMS + i));
-            addParam(createParamCentered<AttenuatorKnob>(wavePositions[i].cvParamPos, module,
-                                                         PostHumanFM::WAVE_CV_PARAMS + i));
-            addInput(
-                createInputCentered<DarkPJ301MPort>(wavePositions[i].inputPos, module, PostHumanFM::WAVE_INPUTS + i));
+            addParam(createParamCentered<ShinyKnob>(wavePositions[i].paramPos, module, Spider::WAVE_PARAMS + i));
+            addParam(
+                createParamCentered<AttenuatorKnob>(wavePositions[i].cvParamPos, module, Spider::WAVE_CV_PARAMS + i));
+            addInput(createInputCentered<DarkPJ301MPort>(wavePositions[i].inputPos, module, Spider::WAVE_INPUTS + i));
 
             if (module) {
                 for (int j = 0; j < OPERATOR_COUNT; ++j) {
                     if (i == j)
                         continue;
                     addChild(createConnectionLight(opSelectorPositions[i], opSelectorPositions[j], module,
-                                                   PostHumanFM::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j, i, j));
+                                                   Spider::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j, i, j));
                 }
             }
 
             addParam(createLightParamCentered<VCVLightButton<RedLight>>(
-                opSelectorPositions[i], module, PostHumanFM::SELECT_PARAMS + i, PostHumanFM::SELECT_LIGHTS + i));
-            addChild(createRingLight(opSelectorPositions[i], module, PostHumanFM::CARRIER_LIGHTS + i, i));
+                opSelectorPositions[i], module, Spider::SELECT_PARAMS + i, Spider::SELECT_LIGHTS + i));
+            addChild(createRingLight(opSelectorPositions[i], module, Spider::CARRIER_LIGHTS + i, i));
         }
     }
 
@@ -415,4 +465,4 @@ struct PostHumanFMWidget : ModuleWidget {
 
 } // namespace ph
 
-Model* modelPostHumanFM = createModel<ph::PostHumanFM, ph::PostHumanFMWidget>("PostHumanFM");
+Model* modelPostHumanSpider = createModel<ph::Spider, ph::SpiderWidget>("Spider");

@@ -31,6 +31,7 @@ void Wavetable::open(const std::string& filename) {
     samples.resize(wav.totalPCMFrameCount);
     drwav_read_pcm_frames_f32(&wav, wav.totalPCMFrameCount, samples.data());
     drwav_uninit(&wav);
+    this->filename = filename;
 }
 
 void Wavetable::openDialog() {
@@ -41,6 +42,20 @@ void Wavetable::openDialog() {
     std::string pathStr(path);
     std::free(path);
     open(pathStr);
+}
+
+json_t* Wavetable::toJson() const {
+    json_t* rootJ = json_object();
+    json_object_set_new(rootJ, "filename", json_string(filename.c_str()));
+    return rootJ;
+} // namespace ph
+
+void Wavetable::fromJson(json_t* rootJ) {
+    json_t* filenameJ = json_object_get(rootJ, "filename");
+    if (filenameJ) {
+        filename = json_string_value(filenameJ);
+        open(filename);
+    }
 }
 
 } // namespace ph

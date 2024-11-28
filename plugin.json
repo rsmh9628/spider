@@ -1,10 +1,10 @@
 {
-  "slug": "FMPlugin",
-  "name": "FMPlugin",
+  "slug": "PostHuman",
+  "name": "PostHuman",
   "version": "2.0.0",
   "license": "proprietary",
-  "brand": "FMPlugin",
-  "author": "Ryan Hughes",
+  "brand": "rsmh",
+  "author": "rsmh",
   "authorEmail": "",
   "authorUrl": "",
   "pluginUrl": "",
@@ -14,10 +14,10 @@
   "changelogUrl": "",
   "modules": [
     {
-      "slug": "PostHumanFM",
-      "name": "PostHumanFM",
-      "description": "",
-      "tags": []
+      "slug": "Spider",
+      "name": "PostHuman Spider",
+      "description": "6-operator FM synth",
+      "tags": ["FM", "Oscillator", "Polyphonic"]
     }
   ]
 }

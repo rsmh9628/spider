@@ -13,6 +13,8 @@ public:
     void init();
     void open(const std::string& filename);
     void openDialog();
+    json_t* toJson() const;
+    void fromJson(json_t* rootJ);
 
     float sampleAt(size_t wave, size_t sample) const {
         if (sample >= samples.size()) {
@@ -33,7 +35,7 @@ public:
     int wavelength;
 
 private:
-    // TODO: probably don't need both
+    std::string filename = "";
     std::vector<float> samples;
 };
 

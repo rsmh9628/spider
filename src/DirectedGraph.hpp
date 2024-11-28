@@ -10,10 +10,6 @@ template <typename T>
 class DirectedGraph {
     static_assert(std::is_integral<T>::value, "T must be an integral type");
 
-private:
-    std::vector<std::vector<T>> adjList;
-    std::vector<std::vector<T>> reverseAdjList;
-
 public:
     DirectedGraph(int vertices)
         : adjList(vertices)
@@ -85,7 +81,7 @@ public:
         return false;
     }
 
-    std::vector<T> topologicalSort() {
+    std::vector<T> topologicalSort() const {
         std::vector<T> inDegree(adjList.size(), 0);
 
         for (const auto& list : adjList) {
@@ -127,6 +123,38 @@ public:
     bool hasReverseEdge(T src, T dest) const {
         return std::find(reverseAdjList[src].begin(), reverseAdjList[src].end(), dest) != reverseAdjList[src].end();
     }
+
+    json_t* toJson() const {
+        json_t* rootJ = json_array();
+
+        for (const auto& list : adjList) {
+            json_t* sublistJ = json_array();
+            for (const auto& dest : list) {
+                json_array_append_new(sublistJ, json_integer(dest));
+            }
+            json_array_append_new(rootJ, sublistJ);
+        }
+
+        return rootJ;
+    }
+
+    void fromJson(json_t* rootJ) {
+        size_t size = json_array_size(rootJ);
+        adjList.resize(size);
+        reverseAdjList.resize(size);
+
+        for (size_t i = 0; i < size; ++i) {
+            json_t* sublistJ = json_array_get(rootJ, i);
+            size_t sublistSize = json_array_size(sublistJ);
+            for (size_t j = 0; j < sublistSize; ++j) {
+                adjList[i].push_back(json_integer_value(json_array_get(sublistJ, j)));
+                reverseAdjList[json_integer_value(json_array_get(sublistJ, j))].push_back(i);
+            }
+        }
+    }
+
+    std::vector<std::vector<T>> adjList;
+    std::vector<std::vector<T>> reverseAdjList;
 };
 
 } // namespace ph
