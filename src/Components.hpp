@@ -109,19 +109,6 @@ struct ConnectionLight : ModuleLightWidget {
                                     rack::color::mult(OPERATOR_COLOURS[op0], haloBrightness), nvgRGBA(0, 0, 0, 0)));
         nvgFill(args.vg);
 
-        float indicatorWidth = w / 2;
-        if (x < 0) {
-            indicatorWidth -= x;
-        } else if (x > w) {
-            indicatorWidth -= w - x;
-        }
-
-        nvgFillPaint(args.vg,
-                     nvgBoxGradient(args.vg, indicatorPos.x - radius, indicatorPos.y - radius, indicatorWidth, h, 5.0f,
-                                    20.0f, rack::color::mult(nvgRGB(255, 255, 255), haloBrightness * indicatorAlpha),
-                                    nvgRGB(0, 0, 0)));
-        nvgFill(args.vg);
-
         // float indicatorX = indicatorPos.x - radius;
         // float indicatorY = indicatorPos.y - radius;
         //

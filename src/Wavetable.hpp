@@ -16,6 +16,12 @@ public:
     json_t* toJson() const;
     void fromJson(json_t* rootJ);
 
+    simd::float_4 sampleAt(simd::int32_4 wave, simd::int32_4 sample) const {
+        return simd::float_4(sampleAt(wave[0], sample[0]), sampleAt(wave[1], sample[1]), sampleAt(wave[2], sample[2]),
+                             sampleAt(wave[3], sample[3]));
+        // todo: probably a better way of doing this but it's fine for now
+    }
+
     float sampleAt(size_t wave, size_t sample) const {
         if (sample >= samples.size()) {
             return 0.f;

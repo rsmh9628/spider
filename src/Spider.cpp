@@ -46,39 +46,13 @@ struct Spider : Module {
     };
 
     struct FMOperator {
-        void generate(float freq, float wavePos, float level, float sampleTime, float modulation) {
-            wavePos *= (wavetable.waveCount() - 1);
+        FMOperator(int index)
+            : wavetable()
+            , index(index) {}
 
-            lastWavePos = wavePos;
+        void process(float freq, float wavePos, float level, float sampleTime, float modulation) {}
 
-            float phaseIncrement = (freq)*sampleTime;
-
-            phase = phase + phaseIncrement + modulation;
-
-            if (phase > 1.f) {
-                phase -= 1.f;
-            } else if (phase < 0.f) {
-                phase += 1.f;
-            }
-
-            float index = phase * wavetable.wavelength;
-
-            float indexF = index - std::trunc(index);
-            size_t index0 = std::trunc(index);
-            size_t index1 = (index0 + 1) % wavetable.wavelength;
-
-            float pos = wavePos - std::trunc(wavePos);
-            size_t wavePos0 = std::trunc(wavePos);
-            size_t wavePos1 = wavePos + 1;
-
-            float out0 = wavetable.sampleAt(wavePos0, index0);
-            float out1 = wavetable.sampleAt(wavePos1, index1);
-
-            // TODO: Only linearly interpolate if necessary otherwise it breaks
-            // Linearly interpolate between the two waves
-            out = level * crossfade(out0, out1, pos);
-        }
-
+        int index = 0;
         float phase = 0.f;
         float out = 0.f;
         float lastWavePos = 0.f;
@@ -160,9 +134,10 @@ struct Spider : Module {
                     }
                     topologicalOrder = algorithmGraph.topologicalSort();
 
-                    for (auto& op : operators) {
-                        op.reset(); // Reset phase of all operators
-                    }
+                    // for (auto& op : operators) {
+                    //     op.reset(); // Reset phase of all operators
+                    // }
+
                     updateTooltips(selectedOperator, false);
                     selectedOperator = -1;
 
@@ -202,7 +177,8 @@ struct Spider : Module {
     void process(const ProcessArgs& args) override {
         float freqParam = getParam(FREQ_PARAM).getValue() / 12.f;
         float pitch = freqParam + getInput(VOCT_INPUT).getVoltage();
-        float freq = dsp::FREQ_C4 * std::pow(2.f, pitch);
+        float baseFreq = dsp::FREQ_C4 * std::pow(2.f, pitch);
+        int channels = std::max(1, getInput(VOCT_INPUT).getChannels());
 
         processEdit(args.sampleTime);
 
@@ -212,6 +188,7 @@ struct Spider : Module {
         float totalLevel = 0.f;
         std::array<float, OPERATOR_COUNT> levels = {};
 
+        // todo: probably need to account for polyphony here? might not.
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             float level = getParam(LEVEL_PARAMS + i).getValue();
             float levelCv = getParam(LEVEL_CV_PARAMS + i).getValue();
@@ -224,6 +201,8 @@ struct Spider : Module {
             totalLevel += level;
         }
 
+        std::array<simd::float_4, OPERATOR_COUNT * 4> wtOut = {};
+
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             int op = topologicalOrder[i];
 
@@ -231,37 +210,7 @@ struct Spider : Module {
                 levels[op] = levels[op] / totalLevel;
             }
             levels[op] = clamp(levels[op], 0.f, 1.f);
-
-            auto& coarseParam = getParam(MULT_PARAMS + op);
-
-            float coarse = coarseParam.getValue();
-
-            float wavePos = getParam(WAVE_PARAMS + op).getValue();
-
-            float multCv = getParam(MULT_CV_PARAMS + op).getValue();
-            float waveCv = getParam(WAVE_CV_PARAMS + op).getValue();
-
-            if (getInput(MULT_INPUTS + op).isConnected()) {
-                coarse += multCv * getInput(MULT_INPUTS + op).getVoltage() / 10.f;
-            }
-
-            if (getInput(WAVE_INPUTS + op).isConnected()) {
-                wavePos += waveCv * getInput(WAVE_INPUTS + op).getVoltage() / 10.f;
-            }
-
-            wavePos = clamp(wavePos, 0.f, 1.f);
-
-            const auto& modulators = algorithmGraph.getAdjacentVerticesRev(op);
-
-            float modulation = 0.f;
-            for (const auto& modulator : modulators) {
-                modulation += operators[modulator].out;
-            }
-
-            float coarseExponent = coarse / 12.0f;
-            freq *= dsp::exp2_taylor5(coarseExponent);
-
-            operators[op].generate(freq, wavePos, levels[op], args.sampleTime, modulation);
+            wtOut[op] = processOperator(op, channels, args.sampleTime, baseFreq, wtOut);
         }
 
         float output = 0.f;
@@ -278,6 +227,89 @@ struct Spider : Module {
         }
 
         getOutput(AUDIO_OUTPUT).setVoltage(5 * output);
+    }
+
+    float processOperator(int op, int channels, float baseFreq, float sampleTime,
+                          const std::array<simd::float_4, OPERATOR_COUNT * 4>& wtOut,
+                          const std::array<float, OPERATOR_COUNT>& levels) {
+        simd::float_4 pitch = getParam(MULT_PARAMS + op).getValue();
+        float wavePos = getParam(WAVE_PARAMS + op).getValue();
+
+        float multCv = getParam(MULT_CV_PARAMS + op).getValue();
+        float waveCv = getParam(WAVE_CV_PARAMS + op).getValue();
+
+        if (getInput(MULT_INPUTS + op).isConnected()) {
+            pitch += multCv * getInput(MULT_INPUTS + op).getVoltage() / 10.f;
+        }
+
+        if (getInput(WAVE_INPUTS + op).isConnected()) {
+            wavePos += waveCv * getInput(WAVE_INPUTS + op).getVoltage() / 10.f;
+        }
+
+        wavePos = clamp(wavePos, 0.f, 1.f);
+        wavePos *= (wavetables[op].waveCount() - 1);
+
+        const auto& modulators = algorithmGraph.getAdjacentVerticesRev(op);
+
+        simd::float_4 pitch = baseFreq;
+
+        // iterate through 4 SIMD polyphonic channels at a time
+        for (int c = 0; c < channels; c += 4) {
+            simd::float_4 modulation = 0.f;
+            for (const auto& modulator : modulators) {
+                modulation += wtOut[modulator + (c / 4)];
+            }
+
+            pitch += getInput(VOCT_INPUT + op).getPolyVoltage(c) / 12.f;
+            simd::float_4 freq = baseFreq * simd::pow(2.f, pitch);
+
+            simd::float_4 phaseIncrement = pitch * sampleTime;
+            phase[op + (c / 4)] += phaseIncrement + modulation;
+            phase[op + (c / 4)] = simd::clamp(phase[op + (c / 4)], 0.f, 1.f);
+
+            simd::float_4 wtIndex = phase[op + (c / 4)] * wavetables[op].wavelength;
+            simd::float_4 wtIndexF = wtIndex - simd::trunc(wtIndex);
+            simd::int32_4 wtIndex0 = simd::trunc(wtIndex);
+
+            // TODO: this using fmod could cause some problems
+            simd::int32_4 wtIndex1 = simd::fmod(wtIndex0 + 1, wavetables[op].wavelength);
+
+            simd::float_4 pos = wavePos - simd::trunc(wavePos);
+            simd::int32_4 wavePos0 = simd::trunc(wavePos);
+            simd::int32_4 wavePos1 = wavePos0 + 1;
+
+            simd::float_4 out0 = wavetables[op].sampleAt(wavePos0, wtIndex0);
+            simd::float_4 out1 = wavetables[op].sampleAt(wavePos1, wtIndex1);
+
+            simd::float_4 out = levels[op] * crossfade(out0, out1, pos);
+        }
+
+        // lastWavePos = wavePos; //todo
+
+        phase = phase + phaseIncrement + modulation;
+
+        if (phase > 1.f) {
+            phase -= 1.f;
+        } else if (phase < 0.f) {
+            phase += 1.f;
+        }
+
+        float index = phase * wavetable.wavelength;
+
+        float indexF = index - std::trunc(index);
+        size_t index0 = std::trunc(index);
+        size_t index1 = (index0 + 1) % wavetable.wavelength;
+
+        float pos = wavePos - std::trunc(wavePos);
+        size_t wavePos0 = std::trunc(wavePos);
+        size_t wavePos1 = wavePos + 1;
+
+        float out0 = wavetable.sampleAt(wavePos0, index0);
+        float out1 = wavetable.sampleAt(wavePos1, index1);
+
+        // TODO: Only linearly interpolate if necessary otherwise it breaks
+        // Linearly interpolate between the two waves
+        out = level * crossfade(out0, out1, pos);
     }
 
     json_t* dataToJson() override {
@@ -335,7 +367,8 @@ struct Spider : Module {
         }
     }
 
-    std::array<FMOperator, OPERATOR_COUNT> operators; // todo: DAG
+    std::array<simd::float_4, OPERATOR_COUNT * 4> phase;
+    std::array<Wavetable, OPERATOR_COUNT> wavetables;
     std::array<bool, OPERATOR_COUNT> carriers = {};
     std::array<dsp::BooleanTrigger, OPERATOR_COUNT> operatorTriggers;
     std::vector<int> topologicalOrder = {0, 1, 2, 3, 4, 5};
