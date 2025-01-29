@@ -16,6 +16,10 @@ public:
         , reverseAdjList(vertices) {}
 
     ToggleEdgeResult addEdge(T src, T dest) {
+        if (hasEdge(dest, src)) {
+            return ToggleEdgeResult::CYCLE;
+        }
+
         adjList[src].push_back(dest);
         reverseAdjList[dest].push_back(src);
 
@@ -150,6 +154,15 @@ public:
                 adjList[i].push_back(json_integer_value(json_array_get(sublistJ, j)));
                 reverseAdjList[json_integer_value(json_array_get(sublistJ, j))].push_back(i);
             }
+        }
+    }
+
+    void clear() {
+        for (auto& list : adjList) {
+            list.clear();
+        }
+        for (auto& list : reverseAdjList) {
+            list.clear();
         }
     }
 

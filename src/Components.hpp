@@ -24,8 +24,8 @@ struct ConnectionLight : ModuleLightWidget {
         this->angle = atan2(p1.y - p0.y, p1.x - p0.x);
 
         // Calculate new endpoint on the edge of the button
-        p0 = p0.plus(10 * Vec(cos(angle), sin(angle)));
-        p1 = p1.minus(10 * Vec(cos(angle), sin(angle)));
+        p0 = p0.plus(15 * Vec(cos(angle), sin(angle)));
+        p1 = p1.minus(15 * Vec(cos(angle), sin(angle)));
 
         if (p0.x < p1.x || (p0.x == p1.x && p0.y < p1.y)) {
             start = p0;
@@ -43,8 +43,6 @@ struct ConnectionLight : ModuleLightWidget {
         end = Vec(this->box.size.x, this->box.size.y);
 
         length = std::hypot(this->box.size.x, this->box.size.y);
-
-        indicatorRadius = std::max(this->box.size.x / 2, this->box.size.y / 2);
     }
 
     void drawBackground(const Widget::DrawArgs& args) override {
@@ -53,9 +51,6 @@ struct ConnectionLight : ModuleLightWidget {
         nvgAlpha(args.vg, 1.0f);
 
         NVGcolor strokeColour = nvgRGB(50, 50, 50);
-        if (getLight(0)->getBrightness() > 0) {
-            strokeColour = nvgRGB(0, 0, 0);
-        }
         nvgStrokeColor(args.vg, strokeColour);
 
         nvgMoveTo(args.vg, start.x, start.y);
@@ -68,19 +63,50 @@ struct ConnectionLight : ModuleLightWidget {
     void drawLight(const Widget::DrawArgs& args) override {
         nvgBeginPath(args.vg);
 
-        nvgStrokeWidth(args.vg, 1.f); // TODO: magic number
+        nvgStrokeWidth(args.vg, 1.f);    // TODO: magic number
+        nvgLineCap(args.vg, NVG_SQUARE); // Set line cap to miter
 
-        nvgMoveTo(args.vg, start.x, start.y);
-        nvgLineTo(args.vg, end.x, end.y);
+        Vec p0 = start;
+        Vec p1 = end;
+
+        if (flipped) {
+            p0 = p0.minus(5 * Vec(cos(angle), sin(angle)));
+        } else {
+            p1 = p1.minus(5 * Vec(cos(angle), sin(angle)));
+        }
+
+        nvgMoveTo(args.vg, p0.x, p0.y);
+        nvgLineTo(args.vg, p1.x, p1.y);
 
         nvgAlpha(args.vg, getLight(0)->getBrightness());
 
         nvgStrokeColor(args.vg, OPERATOR_COLOURS[op0]);
         nvgStroke(args.vg);
 
-        nvgStrokePaint(args.vg, nvgRadialGradient(args.vg, indicatorPos.x, indicatorPos.y, 0.0f, indicatorRadius,
-                                                  nvgRGB(255, 255, 255), nvgRGB(0, 0, 0)));
-        nvgStroke(args.vg);
+        if (flipped) {
+            drawArrowhead(args.vg, start.x, start.y, end.x, end.y, OPERATOR_COLOURS[op0]);
+        } else {
+            drawArrowhead(args.vg, end.x, end.y, start.x, start.y, OPERATOR_COLOURS[op0]);
+        }
+    }
+
+    void drawArrowhead(NVGcontext* vg, float x0, float y0, float x1, float y1, NVGcolor colour) {
+        const float arrowSize = 5.0f; // Size of the arrowhead
+        float angle = atan2(y1 - y0, x1 - x0);
+
+        float arrowX1 = x0 + arrowSize * cos(angle + M_PI / 6);
+        float arrowY1 = y0 + arrowSize * sin(angle + M_PI / 6);
+        float arrowX2 = x0 + arrowSize * cos(angle - M_PI / 6);
+        float arrowY2 = y0 + arrowSize * sin(angle - M_PI / 6);
+
+        nvgBeginPath(vg);
+        nvgMoveTo(vg, x0, y0);
+        nvgLineTo(vg, arrowX1, arrowY1);
+        nvgLineTo(vg, arrowX2, arrowY2);
+        nvgClosePath(vg);
+
+        nvgStrokeColor(vg, colour);
+        nvgStroke(vg);
     }
 
     void drawHalo(const Widget::DrawArgs& args) override {
@@ -129,36 +155,8 @@ struct ConnectionLight : ModuleLightWidget {
     void onEnter(const EnterEvent& e) override { return; }
     void onLeave(const LeaveEvent& e) override { return; }
 
-    void step() override {
-        if (trigger.process(getLight(0)->getBrightness())) {
-            animTime = 0.0f;
-            enabled = true;
-        }
-
-        if (getLight(0)->getBrightness() > 0.0f) {
-            animTime += 0.01f;
-            if (animTime >= 1.0f) {
-                animTime = 0.0f;
-            }
-
-            float position = (flipped) ? 1.5f - animTime * 2.0f : animTime * 2.0f - 0.5f;
-
-            // Calculate indicatorAlpha based on position
-            if (position <= 0.5f) {
-                indicatorAlpha = position * 2.0f; // Smoothly transition from 0 to 1
-            } else {
-                indicatorAlpha = (1.0f - position) * 2.0f; // Smoothly transition from 1 to 0
-            }
-
-            indicatorPos = end * position;
-        }
-
-        ModuleLightWidget::step();
-    }
-
 private:
     dsp::BooleanTrigger trigger;
-    bool enabled = false;
 
     bool flipped = false;
     Vec start = {0, 0};

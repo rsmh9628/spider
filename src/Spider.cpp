@@ -45,26 +45,6 @@ struct Spider : Module {
         LIGHTS_LEN
     };
 
-    struct FMOperator {
-        FMOperator(int index)
-            : wavetable()
-            , index(index) {}
-
-        void process(float freq, float wavePos, float level, float sampleTime, float modulation) {}
-
-        int index = 0;
-        float phase = 0.f;
-        float out = 0.f;
-        float lastWavePos = 0.f;
-
-        void reset() {
-            phase = 0.f;
-            out = 0.f;
-        }
-
-        Wavetable wavetable;
-    };
-
     Spider() {
         configParameters();
         setConnectionLights();
@@ -119,7 +99,6 @@ struct Spider : Module {
                     auto result = algorithmGraph.toggleEdge(selectedOperator, i);
 
                     if (result == ToggleEdgeResult::CYCLE) {
-                        printf("Cycle detected\n"); // todo: flash the lights red for a bit
                         selectedOperator = -1;
                         continue;
                     }
@@ -137,7 +116,6 @@ struct Spider : Module {
                     // for (auto& op : operators) {
                     //     op.reset(); // Reset phase of all operators
                     // }
-
                     updateTooltips(selectedOperator, false);
                     selectedOperator = -1;
 
@@ -174,21 +152,10 @@ struct Spider : Module {
         }
     }
 
-    void process(const ProcessArgs& args) override {
-        float freqParam = getParam(FREQ_PARAM).getValue() / 12.f;
-        float pitch = freqParam + getInput(VOCT_INPUT).getVoltage();
-        float baseFreq = dsp::FREQ_C4 * std::pow(2.f, pitch);
-        int channels = std::max(1, getInput(VOCT_INPUT).getChannels());
-
-        processEdit(args.sampleTime);
-
-        //// todo: this can eventually be parallelised with SIMD once independent carriers can be found from the
-        /// graph
-
+    std::array<float, OPERATOR_COUNT> getOperatorLevels() {
         float totalLevel = 0.f;
         std::array<float, OPERATOR_COUNT> levels = {};
 
-        // todo: probably need to account for polyphony here? might not.
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             float level = getParam(LEVEL_PARAMS + i).getValue();
             float levelCv = getParam(LEVEL_CV_PARAMS + i).getValue();
@@ -201,115 +168,125 @@ struct Spider : Module {
             totalLevel += level;
         }
 
-        std::array<simd::float_4, OPERATOR_COUNT * 4> wtOut = {};
-
-        for (int i = 0; i < OPERATOR_COUNT; ++i) {
-            int op = topologicalOrder[i];
-
-            if (totalLevel > 1.f) {
-                levels[op] = levels[op] / totalLevel;
-            }
-            levels[op] = clamp(levels[op], 0.f, 1.f);
-            wtOut[op] = processOperator(op, channels, args.sampleTime, baseFreq, wtOut);
-        }
-
-        float output = 0.f;
-        for (int i = 0; i < OPERATOR_COUNT; ++i) {
-            if (carriers[i]) {
-                output += operators[i].out;
-            }
-        }
-
-        if (output > 1.f) {
-            output = 1.f;
-        } else if (output < -1.f) {
-            output = -1.f;
-        }
-
-        getOutput(AUDIO_OUTPUT).setVoltage(5 * output);
+        return levels;
     }
 
-    float processOperator(int op, int channels, float baseFreq, float sampleTime,
-                          const std::array<simd::float_4, OPERATOR_COUNT * 4>& wtOut,
-                          const std::array<float, OPERATOR_COUNT>& levels) {
-        simd::float_4 pitch = getParam(MULT_PARAMS + op).getValue();
-        float wavePos = getParam(WAVE_PARAMS + op).getValue();
+    void process(const ProcessArgs& args) override {
+        int channels = std::max(1, getInput(VOCT_INPUT).getChannels());
 
-        float multCv = getParam(MULT_CV_PARAMS + op).getValue();
-        float waveCv = getParam(WAVE_CV_PARAMS + op).getValue();
+        std::vector<float> freqs(channels);
 
-        if (getInput(MULT_INPUTS + op).isConnected()) {
-            pitch += multCv * getInput(MULT_INPUTS + op).getVoltage() / 10.f;
+        // TODO: SIMD
+        for (int c = 0; c < channels; c++) {
+            float freqParam = getParam(FREQ_PARAM).getValue() / 12.f;
+            float pitch = freqParam + getInput(VOCT_INPUT).getPolyVoltage(c);
+            freqs[c] = dsp::FREQ_C4 * std::pow(2.f, pitch);
         }
 
+        processEdit(args.sampleTime);
+
+        auto levels = getOperatorLevels();
+        auto outs = processOperators(channels, args.sampleTime, freqs);
+
+        getOutput(AUDIO_OUTPUT).setChannels(channels);
+
+        for (int c = 0; c < channels; c++) {
+            float output = 0.f;
+
+            for (int op = 0; op < OPERATOR_COUNT; ++op) {
+                if (carriers[op]) {
+                    output += outs[op * channels + c];
+                }
+            }
+
+            // if (output > 1.f) {
+            //     output = 1.f;
+            // } else if (output < -1.f) {
+            //     output = -1.f;
+            // }
+
+            getOutput(AUDIO_OUTPUT).setVoltage(5 * output, c);
+        }
+    }
+
+    std::vector<float> processOperators(int channels, float sampleTime, const std::vector<float>& freqs) {
+        std::vector<float> outs(OPERATOR_COUNT * channels);
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            int op = topologicalOrder[i];
+            processOperator(op, channels, sampleTime, outs, freqs);
+        }
+
+        return outs;
+    }
+
+    void processOperator(int op, int channels, float sampleTime, std::vector<float>& outs,
+                         const std::vector<float>& freqs) {
+        // TODO: only process an operator if it has a level
+
+        float pitchShift = getParam(MULT_PARAMS + op).getValue();
+        float pitchShiftCv = getParam(MULT_CV_PARAMS + op).getValue();
+
+        if (getInput(MULT_INPUTS + op).isConnected()) {
+            pitchShift += pitchShiftCv * getInput(MULT_INPUTS + op).getVoltage() / 10.f;
+        }
+
+        float pitchShiftExponent = pitchShift / 12.0f;
+
+        float wavePos = getParam(WAVE_PARAMS + op).getValue();
+        float wavePosCv = getParam(WAVE_CV_PARAMS + op).getValue();
+
         if (getInput(WAVE_INPUTS + op).isConnected()) {
-            wavePos += waveCv * getInput(WAVE_INPUTS + op).getVoltage() / 10.f;
+            wavePos += wavePosCv * getInput(WAVE_INPUTS + op).getVoltage() / 10.f;
         }
 
         wavePos = clamp(wavePos, 0.f, 1.f);
-        wavePos *= (wavetables[op].waveCount() - 1);
+        wavePos *= wavetables[op].waveCount() - 1;
+
+        float level = getParam(LEVEL_PARAMS + op).getValue();
+        float levelCv = getParam(LEVEL_CV_PARAMS + op).getValue();
+
+        if (getInput(LEVEL_INPUTS + op).isConnected()) {
+            level += levelCv * getInput(LEVEL_INPUTS + op).getVoltage() / 10.f;
+        }
 
         const auto& modulators = algorithmGraph.getAdjacentVerticesRev(op);
 
-        simd::float_4 pitch = baseFreq;
+        for (int c = 0; c < channels; c++) {
+            float modulation = 0.f;
 
-        // iterate through 4 SIMD polyphonic channels at a time
-        for (int c = 0; c < channels; c += 4) {
-            simd::float_4 modulation = 0.f;
-            for (const auto& modulator : modulators) {
-                modulation += wtOut[modulator + (c / 4)];
+            for (int mod : modulators) {
+                modulation += outs[mod * channels + c];
             }
 
-            pitch += getInput(VOCT_INPUT + op).getPolyVoltage(c) / 12.f;
-            simd::float_4 freq = baseFreq * simd::pow(2.f, pitch);
+            float freq = freqs[c] * dsp::exp2_taylor5(pitchShiftExponent);
 
-            simd::float_4 phaseIncrement = pitch * sampleTime;
-            phase[op + (c / 4)] += phaseIncrement + modulation;
-            phase[op + (c / 4)] = simd::clamp(phase[op + (c / 4)], 0.f, 1.f);
+            phase[op * channels + c] += freq * sampleTime + modulation;
+            // TODO: check this is ocrrect because ive changed it to the sine example
+            if (phase[op * channels + c] >= 1.f)
+                phase[op * channels + c] -= 1.f;
 
-            simd::float_4 wtIndex = phase[op + (c / 4)] * wavetables[op].wavelength;
-            simd::float_4 wtIndexF = wtIndex - simd::trunc(wtIndex);
-            simd::int32_4 wtIndex0 = simd::trunc(wtIndex);
-
-            // TODO: this using fmod could cause some problems
-            simd::int32_4 wtIndex1 = simd::fmod(wtIndex0 + 1, wavetables[op].wavelength);
-
-            simd::float_4 pos = wavePos - simd::trunc(wavePos);
-            simd::int32_4 wavePos0 = simd::trunc(wavePos);
-            simd::int32_4 wavePos1 = wavePos0 + 1;
-
-            simd::float_4 out0 = wavetables[op].sampleAt(wavePos0, wtIndex0);
-            simd::float_4 out1 = wavetables[op].sampleAt(wavePos1, wtIndex1);
-
-            simd::float_4 out = levels[op] * crossfade(out0, out1, pos);
+            outs[op * channels + c] = level * getInterpolatedWtSample(op, phase[op * channels + c], wavePos);
         }
+    }
 
-        // lastWavePos = wavePos; //todo
+    float getInterpolatedWtSample(int op, float phase, float wavePos) {
+        float wtIndex = phase * wavetables[op].wavelength;
+        float wtIndexF = wtIndex - std::trunc(wtIndex);
 
-        phase = phase + phaseIncrement + modulation;
-
-        if (phase > 1.f) {
-            phase -= 1.f;
-        } else if (phase < 0.f) {
-            phase += 1.f;
-        }
-
-        float index = phase * wavetable.wavelength;
-
-        float indexF = index - std::trunc(index);
-        size_t index0 = std::trunc(index);
-        size_t index1 = (index0 + 1) % wavetable.wavelength;
+        size_t wtIndex0 = std::trunc(wtIndex);
+        size_t wtIndex1 = (wtIndex0 + 1) % wavetables[op].wavelength;
 
         float pos = wavePos - std::trunc(wavePos);
         size_t wavePos0 = std::trunc(wavePos);
         size_t wavePos1 = wavePos + 1;
 
-        float out0 = wavetable.sampleAt(wavePos0, index0);
-        float out1 = wavetable.sampleAt(wavePos1, index1);
+        float out0 = wavetables[op].sampleAt(wavePos0, wtIndex0);
+        float out1 = wavetables[op].sampleAt(wavePos1, wtIndex1);
 
         // TODO: Only linearly interpolate if necessary otherwise it breaks
         // Linearly interpolate between the two waves
-        out = level * crossfade(out0, out1, pos);
+        float out = crossfade(out0, out1, pos);
+        return out;
     }
 
     json_t* dataToJson() override {
@@ -329,8 +306,8 @@ struct Spider : Module {
         json_object_set_new(rootJ, "carriers", carriersJ);
 
         json_t* wavetableArrayJ = json_array();
-        for (auto& op : operators) {
-            json_array_append_new(wavetableArrayJ, op.wavetable.toJson());
+        for (const auto& wt : wavetables) {
+            json_array_append_new(wavetableArrayJ, wt.toJson());
         }
         json_object_set_new(rootJ, "wavetables", wavetableArrayJ);
 
@@ -367,8 +344,54 @@ struct Spider : Module {
         }
     }
 
-    std::array<simd::float_4, OPERATOR_COUNT * 4> phase;
+    void clearConnectionLights() {
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            getLight(CARRIER_LIGHTS + i).setBrightness(0.0f);
+
+            for (int j = 0; j < OPERATOR_COUNT; ++j) {
+                getLight(CONNECTION_LIGHTS + i * OPERATOR_COUNT + j).setBrightness(0.0f);
+            }
+        }
+    }
+
+    void onReset() override {
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            carriers[i] = false;
+            operatorTriggers[i].reset();
+        }
+
+        clearConnectionLights();
+        algorithmGraph.clear();
+        topologicalOrder = {0, 1, 2, 3, 4, 5};
+        updateTooltips(selectedOperator, false);
+        selectedOperator = -1;
+
+        Module::onReset();
+    }
+
+    void onRandomize() {
+        algorithmGraph.clear();
+        clearConnectionLights();
+
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            carriers[i] = random::uniform() > 0.5f;
+
+            for (int j = 0; j < OPERATOR_COUNT; ++j) {
+                if (random::uniform() > 0.75f) {
+                    algorithmGraph.addEdge(i, j);
+                }
+            }
+        }
+
+        topologicalOrder = algorithmGraph.topologicalSort();
+        setConnectionLights();
+
+        Module::onRandomize();
+    }
+
+    std::array<float, OPERATOR_COUNT * 16> phase;
     std::array<Wavetable, OPERATOR_COUNT> wavetables;
+    std::array<float, OPERATOR_COUNT> lastWavePos;
     std::array<bool, OPERATOR_COUNT> carriers = {};
     std::array<dsp::BooleanTrigger, OPERATOR_COUNT> operatorTriggers;
     std::vector<int> topologicalOrder = {0, 1, 2, 3, 4, 5};
@@ -432,8 +455,8 @@ struct SpiderWidget : ModuleWidget {
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
         }
 
-        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(65.193f, 117.008f)), module, Spider::VOCT_INPUT));
-        addChild(createOutputCentered<PJ301MPort>(mm2px(Vec(107.527f, 117.008f)), module, Spider::AUDIO_OUTPUT));
+        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(67.37f, 117.008f)), module, Spider::VOCT_INPUT));
+        addChild(createOutputCentered<PJ301MPort>(mm2px(Vec(105.375f, 117.008f)), module, Spider::AUDIO_OUTPUT));
 
         addChild(createParamCentered<ShinyBigKnob>(mm2px(Vec(86.360f, 113.318f)), module, Spider::FREQ_PARAM));
     }
@@ -446,8 +469,9 @@ struct SpiderWidget : ModuleWidget {
             auto* display = createWidget<WavetableDisplay>(displayPositions[i]);
 
             if (module) {
-                display->wavetable = &fmModule->operators[i].wavetable;
-                display->wavePos = &fmModule->operators[i].lastWavePos;
+                display->wavetable = &fmModule->wavetables[i];
+                // todo: wavepositioin for control
+                display->wavePos = &fmModule->lastWavePos[i];
             }
             display->op = i;
 
@@ -468,6 +492,10 @@ struct SpiderWidget : ModuleWidget {
                 createParamCentered<AttenuatorKnob>(wavePositions[i].cvParamPos, module, Spider::WAVE_CV_PARAMS + i));
             addInput(createInputCentered<DarkPJ301MPort>(wavePositions[i].inputPos, module, Spider::WAVE_INPUTS + i));
 
+            addParam(createLightParamCentered<VCVLightButton<RedLight>>(
+                opSelectorPositions[i], module, Spider::SELECT_PARAMS + i, Spider::SELECT_LIGHTS + i));
+            addChild(createRingLight(opSelectorPositions[i], module, Spider::CARRIER_LIGHTS + i, i));
+
             if (module) {
                 for (int j = 0; j < OPERATOR_COUNT; ++j) {
                     if (i == j)
@@ -476,10 +504,6 @@ struct SpiderWidget : ModuleWidget {
                                                    Spider::CONNECTION_LIGHTS + OPERATOR_COUNT * i + j, i, j));
                 }
             }
-
-            addParam(createLightParamCentered<VCVLightButton<RedLight>>(
-                opSelectorPositions[i], module, Spider::SELECT_PARAMS + i, Spider::SELECT_LIGHTS + i));
-            addChild(createRingLight(opSelectorPositions[i], module, Spider::CARRIER_LIGHTS + i, i));
         }
     }
 
