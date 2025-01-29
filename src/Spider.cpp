@@ -515,6 +515,17 @@ struct SpiderWidget : ModuleWidget {
         }
     }
 
+    void step() override {
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            for (int j = 0; j < OPERATOR_COUNT; ++j) {
+                if (i == j)
+                    continue;
+            }
+        }
+
+        ModuleWidget::step();
+    }
+
     constexpr static float opRadius = 48.f;
 
     constexpr static float pi = M_PI;

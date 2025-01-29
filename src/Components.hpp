@@ -46,47 +46,51 @@ struct ConnectionLight : ModuleLightWidget {
     }
 
     void drawBackground(const Widget::DrawArgs& args) override {
-        nvgBeginPath(args.vg);
-
-        nvgAlpha(args.vg, 1.0f);
-
         NVGcolor strokeColour = nvgRGB(50, 50, 50);
-        nvgStrokeColor(args.vg, strokeColour);
-
-        nvgMoveTo(args.vg, start.x, start.y);
-        nvgLineTo(args.vg, end.x, end.y);
-
-        nvgStrokeWidth(args.vg, 1.0f); // TODO: magic number
-        nvgStroke(args.vg);
+        drawSegmentedLine(args.vg, start, end, strokeColour, 1.0f, false);
     }
 
     void drawLight(const Widget::DrawArgs& args) override {
-        nvgBeginPath(args.vg);
+        drawSegmentedLine(args.vg, start, end, OPERATOR_COLOURS[op0], getLight(0)->getBrightness(), true);
+    }
 
-        nvgStrokeWidth(args.vg, 1.f);    // TODO: magic number
-        nvgLineCap(args.vg, NVG_SQUARE); // Set line cap to miter
+    void drawSegmentedLine(NVGcontext* vg, const Vec& start, const Vec& end, NVGcolor color, float alpha,
+                           bool animated) {
+        nvgStrokeWidth(vg, 1.f);    // TODO: magic number
+        nvgLineCap(vg, NVG_SQUARE); // Set line cap to miter
 
         Vec p0 = start;
         Vec p1 = end;
 
-        if (flipped) {
-            p0 = p0.minus(5 * Vec(cos(angle), sin(angle)));
-        } else {
-            p1 = p1.minus(5 * Vec(cos(angle), sin(angle)));
-        }
+        Vec direction = p1.minus(p0).normalize();
+        float totalLength = sqrt(pow(p1.x - p0.x, 2) + pow(p1.y - p0.y, 2));
+        float gap = totalLength / 10.0f;
+        float segmentLength = (totalLength - 3 * gap) / 4.0f;
 
-        nvgMoveTo(args.vg, p0.x, p0.y);
-        nvgLineTo(args.vg, p1.x, p1.y);
+        for (int i = 0; i < 4; ++i) {
+            nvgBeginPath(vg);
+            Vec segmentStart = p0.plus(direction.mult((segmentLength + gap) * i));
+            Vec segmentEnd = segmentStart.plus(direction.mult(segmentLength));
+            float segmentAlpha = 1.f;
 
-        nvgAlpha(args.vg, getLight(0)->getBrightness());
+            if (animated) {
+                if (animTime < 0.5f) {
+                    segmentAlpha = std::min(1.0f, std::max(0.0f, animTime * 8 - (flipped ? (3 - i) : i)));
+                } else {
+                    segmentAlpha = std::min(1.0f, std::max(0.0f, (1.0f - animTime) * 8 - (flipped ? i : (3 - i))));
+                }
+            } else {
+                segmentAlpha = 1.0f;
+            }
 
-        nvgStrokeColor(args.vg, OPERATOR_COLOURS[op0]);
-        nvgStroke(args.vg);
+            nvgMoveTo(vg, segmentStart.x, segmentStart.y);
+            nvgLineTo(vg, segmentEnd.x, segmentEnd.y);
 
-        if (flipped) {
-            drawArrowhead(args.vg, start.x, start.y, end.x, end.y, OPERATOR_COLOURS[op0]);
-        } else {
-            drawArrowhead(args.vg, end.x, end.y, start.x, start.y, OPERATOR_COLOURS[op0]);
+            auto segmentColour = color;
+            segmentColour.a = alpha * segmentAlpha;
+
+            nvgStrokeColor(vg, segmentColour);
+            nvgStroke(vg);
         }
     }
 
@@ -130,9 +134,10 @@ struct ConnectionLight : ModuleLightWidget {
         nvgBeginPath(args.vg);
 
         nvgRoundedRect(args.vg, x - w, y - h, w * 3.f, h * 3.f, h * 1.0f);
-        nvgFillPaint(args.vg,
-                     nvgBoxGradient(args.vg, x, y, w, h, 0.0f, h * 0.5f,
-                                    rack::color::mult(OPERATOR_COLOURS[op0], haloBrightness), nvgRGBA(0, 0, 0, 0)));
+        nvgFillPaint(args.vg, nvgBoxGradient(args.vg, x, y, w, h, 0.0f, h * 0.5f,
+                                             rack::color::mult(OPERATOR_COLOURS[op0],
+                                                               getLight(0)->getBrightness() * haloBrightness),
+                                             nvgRGBA(0, 0, 0, 0)));
         nvgFill(args.vg);
 
         // float indicatorX = indicatorPos.x - radius;
@@ -149,6 +154,21 @@ struct ConnectionLight : ModuleLightWidget {
         // nvgFill(args.vg);
 
         // nvgFillColor(args.vg, nvgRGB(255, 255, 255));
+    }
+
+    void step() override {
+        if (trigger.process(getLight(0)->getBrightness())) {
+            animTime = 0.0f;
+        }
+
+        if (getLight(0)->getBrightness() > 0.0f) {
+            animTime += 0.025f;
+            if (animTime >= 1.0f) {
+                animTime = 0.0f;
+            }
+        }
+
+        ModuleLightWidget::step();
     }
 
     // Tooltips are not useful for this widget
