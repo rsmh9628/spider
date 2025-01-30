@@ -1,5 +1,6 @@
-#include "WavetableDisplay.hpp"
-#include "Colour.hpp"
+#if 0
+#    include "WavetableDisplay.hpp"
+#    include "Colour.hpp"
 
 namespace ph {
 
@@ -8,9 +9,9 @@ WavetableDisplay::WavetableDisplay() {
 }
 
 void WavetableDisplay::draw(const DrawArgs& args) {
-    if (!wavetable) {
-        return;
-    }
+    //if (!wavetable) {
+    //    return;
+    //}
 }
 
 void WavetableDisplay::drawLayer(const DrawArgs& args, int layer) {
@@ -36,8 +37,8 @@ void WavetableDisplay::drawLayer(const DrawArgs& args, int layer) {
     nvgStrokeWidth(args.vg, 0.5f);
     nvgStroke(args.vg);
 
-    if (!wavetable)
-        return;
+    //if (!wavetable)
+    //    return;
 
     float wavePos = *this->wavePos;
 
@@ -126,3 +127,4 @@ void WavetableDisplay::createContextMenu() {
 }
 
 } // namespace ph
+#endif

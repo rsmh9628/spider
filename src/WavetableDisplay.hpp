@@ -16,7 +16,7 @@ public:
     void draw(const DrawArgs& args) override;
     void drawLayer(const DrawArgs& args, int layer) override;
 
-    Wavetable* wavetable = nullptr;
+    // Wavetable* wavetable = nullptr;
     float* wavePos = nullptr;
 
     int op = 0;
