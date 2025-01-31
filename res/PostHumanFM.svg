@@ -11,12 +11,12 @@
   </g>
   <g>
     <g id="g3">
-      <path id="path82" d="M162.4,153.1L14.8,67.8" style="fill: none; stroke: #000; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
-      <path id="path83" d="M162.4,202.6L14.8,288" style="fill: none; stroke: #000; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
-      <path id="path85" d="M347.6,202.6l147.5,85.3" style="fill: none; stroke: #000; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
-      <path id="path86" d="M347.6,153.1l147.6-85.4" style="fill: none; stroke: #000; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
-      <path id="path88" d="M255,256.2v43.2" sodipodi:nodetypes="cc" style="fill: none; stroke: #000; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
-      <path id="path88-1" d="M255,41.8v57.7" sodipodi:nodetypes="cc" style="fill: none; stroke: #000; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
+      <path id="path82" d="M162.4,153.1L14.8,67.8" style="fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
+      <path id="path83" d="M162.4,202.6L14.8,288" style="fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
+      <path id="path85" d="M347.6,202.6l147.5,85.3" style="fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
+      <path id="path86" d="M347.6,153.1l147.6-85.4" style="fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
+      <path id="path88" d="M255,256.2v43.2" sodipodi:nodetypes="cc" style="fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
+      <path id="path88-1" d="M255,41.8v57.7" sodipodi:nodetypes="cc" style="fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-miterlimit: 11.3; stroke-width: 2px;"/>
       <path id="path7-6" d="M162.4,202.6v-49.5l92.6-53.6,92.6,53.6v49.5l-92.6,53.5-92.6-53.5Z" sodipodi:nodetypes="cccccccccc" style="fill: #0a0a0a; fill-opacity: .8; stroke: #e6e6e6; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2px;"/>
     </g>
     <g id="g2" inkscape:label="op1">
