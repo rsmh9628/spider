@@ -1,155 +1,156 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "label": "Build VCV Rack",
-        "type": "shell",
-        "command": "make -j24 dep && make -j24",
-        "options": {
-          "cwd": "${workspaceRoot}/../../"
-        },
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        },
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        },
-        "problemMatcher": {
-          "owner": "cpp",
-          "fileLocation": [
-            "absolute"
-          ],
-          "pattern": {
-            "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-            "file": 1,
-            "line": 2,
-            "column": 3,
-            "severity": 4,
-            "message": 5
-          }
-        },
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build VCV Rack",
+      "type": "shell",
+      "command": "make -j24 dep; make -j24",
+      "options": {
+        "cwd": "${workspaceRoot}/../../",
       },
-      {
-        "label": "Build plugin",
-        "type": "shell",
-        "command": "make -j24",
-        "options": {
-          "cwd": "${workspaceRoot}",
-          "env": {
-            "RACK_DIR": "${workspaceRoot}/../../",
-            "RACK_USER_DIR": "${workspaceRoot}/../../"
-          }
-        },
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        },
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        },
-        "problemMatcher": {
-          "owner": "cpp",
-          "fileLocation": [
-            "absolute"
-          ],
-          "pattern": {
-            "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-            "file": 1,
-            "line": 2,
-            "column": 3,
-            "severity": 4,
-            "message": 5
-          }
-        },
-        "dependsOn": [
-          "Build VCV Rack"
-        ]
+      "group": {
+        "kind": "build",
+        "isDefault": true
       },
-      {
-        "label": "Clean plugin",
-        "type": "shell",
-        "command": "make clean",
-        "options": {
-          "cwd": "${workspaceRoot}",
-          "env": {
-            "RACK_DIR": "${workspaceRoot}/../../"
-          }
-        },
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        },
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        },
-        "problemMatcher": {
-          "owner": "cpp",
-          "fileLocation": [
-            "absolute"
-          ],
-          "pattern": {
-            "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-            "file": 1,
-            "line": 2,
-            "column": 3,
-            "severity": 4,
-            "message": 5
-          }
-        }
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
       },
-      {
-        "label": "Clean VCV Rack",
-        "type": "shell",
-        "command": "make clean",
-        "options": {
-          "cwd": "${workspaceRoot}/../../",
-          "env": {
-            "RACK_DIR": "${workspaceRoot}/../../"
-          }
-        },
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        },
-        "presentation": {
-          "echo": true,
-          "reveal": "always",
-          "focus": false,
-          "panel": "shared"
-        },
-        "problemMatcher": {
-          "owner": "cpp",
-          "fileLocation": [
-            "absolute"
-          ],
-          "pattern": {
-            "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-            "file": 1,
-            "line": 2,
-            "column": 3,
-            "severity": 4,
-            "message": 5
-          }
-        }
-      },
-      {
-        "label": "Clean all",
-        "dependsOrder": "parallel",
-        "dependsOn": [
-          "Clean plugin",
-          "Clean VCV Rack"
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": [
+          "absolute"
         ],
-        "problemMatcher": []
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
       }
-    ]
-  }
+    },
+    {
+      "label": "Build plugin",
+      "type": "shell",
+      "command": "make -j24",
+      "options": {
+        "cwd": "${workspaceRoot}",
+        "env": {
+          "RACK_DIR": "${workspaceRoot}/../../",
+          "RACK_USER_DIR": "${workspaceRoot}/../../"
+        },
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": [
+          "absolute"
+        ],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      },
+      "dependsOn": [
+        "Build VCV Rack"
+      ]
+    },
+    {
+      "label": "Clean plugin",
+      "type": "shell",
+      "command": "make clean",
+      "options": {
+        "cwd": "${workspaceRoot}",
+        "env": {
+          "RACK_DIR": "${workspaceRoot}/../../",
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": [
+          "absolute"
+        ],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    },
+    {
+      "label": "Clean VCV Rack",
+      "type": "shell",
+      "command": "make clean",
+      "options": {
+        "cwd": "${workspaceRoot}/../../",
+        "env": {
+          "RACK_DIR": "${workspaceRoot}/../../",
+          "MSYSTEM": "MINGW64"
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": [
+          "absolute"
+        ],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      }
+    },
+    {
+      "label": "Clean all",
+      "dependsOrder": "parallel",
+      "dependsOn": [
+        "Clean plugin",
+        "Clean VCV Rack"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
