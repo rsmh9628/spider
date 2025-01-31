@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" width="23.7" height="23.7" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 23.7 23.7">
+  <!-- Generator: Adobe Illustrator 29.2.1, SVG Export Plug-In . SVG Version: 2.1.0 Build 116)  -->
+  <defs>
+    <linearGradient id="linear-gradient" x1="11.8" y1="23.1" x2="11.8" y2=".6" gradientTransform="rotate(90) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4d4d4d"/>
+      <stop offset="1" stop-color="#aeadad"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient1" x1="11.8" y1="1.9" x2="11.8" y2="21.8" gradientTransform="rotate(90) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="1" stop-color="#c5c4c4"/>
+    </linearGradient>
+    <linearGradient id="linear-gradient2" x1="5.9" y1="11.8" x2="17.8" y2="11.8" gradientTransform="rotate(90) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4f4f4f"/>
+      <stop offset="1" stop-color="#e6e4e3"/>
+    </linearGradient>
+  </defs>
+  <polygon points="17.8 1.6 5.9 1.6 0 11.8 23.7 11.8 17.8 1.6" style="fill: #eaeaea;"/>
+  <polygon points="0 11.8 5.9 22.1 17.8 22.1 23.7 11.8 0 11.8" style="fill: #c7c7c6;"/>
+  <polygon points="6.2 2.1 17.5 2.1 23.1 11.9 17.5 21.6 6.2 21.6 .6 11.8 6.2 2.1" style="fill: url(#linear-gradient);"/>
+  <polygon points="6.5 2.6 17.2 2.6 22.5 11.9 17.2 21.1 6.5 21.1 1.2 11.8 6.5 2.6" style="fill: #e8e7e7;"/>
+  <polygon points="6.7 3 17 3 22.1 11.9 17 20.7 6.7 20.7 1.6 11.8 6.7 3" style="fill: #828282;"/>
+  <polygon points="6.9 3.3 16.8 3.3 21.8 11.9 16.8 20.4 6.9 20.4 1.9 11.8 6.9 3.3" style="fill: url(#linear-gradient1);"/>
+  <circle id="circle198" cx="11.8" cy="11.8" r="8.1" style="fill: #d4d4d3;"/>
+  <circle id="circle1981" data-name="circle198" cx="11.8" cy="11.8" r="7.6" style="fill: #545454;"/>
+  <circle id="circle1982" data-name="circle198" cx="11.8" cy="11.8" r="6.9" style="fill: #d9d8d7;"/>
+  <circle id="circle1983" data-name="circle198" cx="11.8" cy="11.8" r="6" style="fill: url(#linear-gradient2);"/>
+  <circle id="circle1984" data-name="circle198" cx="11.8" cy="11.8" r="5.1" style="fill: #010101;"/>
+</svg>

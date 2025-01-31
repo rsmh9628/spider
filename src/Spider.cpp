@@ -455,28 +455,28 @@ struct SpiderWidget : ModuleWidget {
     };
 
     const ParameterPositions multPositions[OPERATOR_COUNT] = {
-        {mm2px(Vec(29.421, 12.109)), mm2px(Vec(15.007, 20.196)), mm2px(Vec(29.421, 28.560))},
-        {mm2px(Vec(143.299, 12.195)), mm2px(Vec(157.713, 21.224)), mm2px(Vec(143.299, 29.588))},
-        {mm2px(Vec(165.097, 44.598)), mm2px(Vec(150.682, 39.744)), mm2px(Vec(165.097, 31.380))},
-        {mm2px(Vec(143.302, 107.098)), mm2px(Vec(157.717, 99.069)), mm2px(Vec(143.302, 90.705))},
-        {mm2px(Vec(29.421, 107.098)), mm2px(Vec(15.007, 99.069)), mm2px(Vec(29.421, 90.705))},
-        {mm2px(Vec(7.596, 44.598)), mm2px(Vec(22.011, 39.744)), mm2px(Vec(7.596, 31.380))}};
+        {Vec(86.414, 35.903), Vec(43.814, 58.803), Vec(86.414, 83.783)},
+        {Vec(422.586, 35.903), Vec(465.186, 58.803), Vec(422.586, 83.783)},
+        {Vec(484.68, 212.875), Vec(442.08, 235.775), Vec(484.68, 260.755)},
+        {Vec(422.586, 320.253), Vec(465.186, 297.353), Vec(422.586, 272.373)},
+        {Vec(86.414, 320.253), Vec(43.814, 297.353), Vec(86.414, 272.373)},
+        {Vec(25.32, 212.875), Vec(67.92, 235.775), Vec(25.32, 260.756)}};
 
     const ParameterPositions levelPositions[OPERATOR_COUNT] = {
-        {mm2px(Vec(67.149, 19.280)), mm2px(Vec(78.825, 29.447)), mm2px(Vec(66.395, 36.623))},
-        {mm2px(Vec(103.983, 14.350)), mm2px(Vec(93.895, 30.475)), mm2px(Vec(106.325, 37.652))},
-        {mm2px(Vec(165.097, 74.120)), mm2px(Vec(150.682, 78.974)), mm2px(Vec(165.097, 87.337))},
-        {mm2px(Vec(106.632, 100.123)), mm2px(Vec(94.957, 89.289)), mm2px(Vec(107.386, 82.113))},
-        {mm2px(Vec(66.091, 100.123)), mm2px(Vec(77.767, 89.289)), mm2px(Vec(65.337, 82.113))},
-        {mm2px(Vec(7.596, 74.120)), mm2px(Vec(22.011, 78.974)), mm2px(Vec(7.596, 87.337))}};
+        {Vec(197.814, 56.903), Vec(232.414, 91.135), Vec(197.814, 109.703)},
+        {Vec(311.186, 56.903), Vec(276.586, 91.135), Vec(311.186, 109.703)},
+        {Vec(402.022, 155.209), Vec(367.422, 189.441), Vec(402.022, 208.009)},
+        {Vec(311.186, 299.253), Vec(276.586, 265.022), Vec(311.186, 246.453)},
+        {Vec(197.814, 299.253), Vec(232.414, 265.022), Vec(197.814, 246.453)},
+        {Vec(107.978, 155.209), Vec(142.578, 189.441), Vec(107.978, 208.009)}};
 
     const ParameterPositions wavePositions[OPERATOR_COUNT] = {
-        {mm2px(Vec(42.211, 35.844)), mm2px(Vec(55.000, 26.233)), mm2px(Vec(55.000, 43.128))},
-        {mm2px(Vec(130.509, 36.844)), mm2px(Vec(117.720, 27.261)), mm2px(Vec(117.720, 44.156))},
-        {mm2px(Vec(135.745, 51.447)), mm2px(Vec(125.657, 64.397)), mm2px(Vec(138.086, 71.573))},
-        {mm2px(Vec(130.513, 83.421)), mm2px(Vec(117.724, 93.032)), mm2px(Vec(117.724, 76.137))},
-        {mm2px(Vec(42.211, 83.421)), mm2px(Vec(55.000, 93.032)), mm2px(Vec(55.000, 76.137))},
-        {mm2px(Vec(36.948, 51.447)), mm2px(Vec(47.036, 64.397)), mm2px(Vec(34.606, 71.573))}};
+        {Vec(124.114, 105.291), Vec(161.914, 82.003), Vec(161.914, 123.954)},
+        {Vec(384.886, 105.291), Vec(347.086, 82.003), Vec(347.086, 123.954)},
+        {Vec(484.669, 142.881), Vec(442.08, 119.803), Vec(484.68, 94.823)},
+        {Vec(384.886, 250.865), Vec(347.086, 274.153), Vec(347.086, 232.202)},
+        {Vec(124.114, 250.865), Vec(161.914, 274.153), Vec(161.914, 232.202)},
+        {Vec(25.331, 142.881), Vec(67.92, 119.803), Vec(25.32, 94.823)}};
 
     const Vec displayPositions[OPERATOR_COUNT] = {mm2px(Vec(38.278, 7.297)),   mm2px(Vec(112.840, 8.297)),
                                                   mm2px(Vec(146.850, 53.862)), mm2px(Vec(113.830, 100.283)),
@@ -499,8 +499,8 @@ struct SpiderWidget : ModuleWidget {
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
         }
 
-        addChild(createInputCentered<PJ301MPort>(mm2px(Vec(67.37f, 117.008f)), module, Spider::VOCT_INPUT));
-        addChild(createOutputCentered<PJ301MPort>(mm2px(Vec(105.375f, 117.008f)), module, Spider::AUDIO_OUTPUT));
+        addChild(createInputCentered<HexJack>(mm2px(Vec(67.37f, 117.008f)), module, Spider::VOCT_INPUT));
+        addChild(createOutputCentered<HexJack>(mm2px(Vec(105.375f, 117.008f)), module, Spider::AUDIO_OUTPUT));
 
         addChild(createParamCentered<ShinyBigKnob>(mm2px(Vec(86.360f, 113.318f)), module, Spider::FREQ_PARAM));
     }
@@ -524,17 +524,17 @@ struct SpiderWidget : ModuleWidget {
             addParam(createParamCentered<ShinyKnob>(multPositions[i].paramPos, module, Spider::MULT_PARAMS + i));
             addParam(
                 createParamCentered<AttenuatorKnob>(multPositions[i].cvParamPos, module, Spider::MULT_CV_PARAMS + i));
-            addInput(createInputCentered<DarkPJ301MPort>(multPositions[i].inputPos, module, Spider::MULT_INPUTS + i));
+            addInput(createInputCentered<HexJack>(multPositions[i].inputPos, module, Spider::MULT_INPUTS + i));
 
             addParam(createParamCentered<ShinyKnob>(levelPositions[i].paramPos, module, Spider::LEVEL_PARAMS + i));
             addParam(
                 createParamCentered<AttenuatorKnob>(levelPositions[i].cvParamPos, module, Spider::LEVEL_CV_PARAMS + i));
-            addInput(createInputCentered<DarkPJ301MPort>(levelPositions[i].inputPos, module, Spider::LEVEL_INPUTS + i));
+            addInput(createInputCentered<HexJack>(levelPositions[i].inputPos, module, Spider::LEVEL_INPUTS + i));
 
             addParam(createParamCentered<ShinyKnob>(wavePositions[i].paramPos, module, Spider::WAVE_PARAMS + i));
             addParam(
                 createParamCentered<AttenuatorKnob>(wavePositions[i].cvParamPos, module, Spider::WAVE_CV_PARAMS + i));
-            addInput(createInputCentered<DarkPJ301MPort>(wavePositions[i].inputPos, module, Spider::WAVE_INPUTS + i));
+            addInput(createInputCentered<HexJack>(wavePositions[i].inputPos, module, Spider::WAVE_INPUTS + i));
 
             addParam(createLightParamCentered<VCVLightButton<RedLight>>(
                 opSelectorPositions[i], module, Spider::SELECT_PARAMS + i, Spider::SELECT_LIGHTS + i));

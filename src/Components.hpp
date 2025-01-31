@@ -206,6 +206,12 @@ ConnectionLight* createConnectionLight(Vec p0, Vec p1, Module* module, int first
     return light;
 }
 
+struct HexJack : SvgPort {
+    HexJack() {
+        setSvg(Svg::load(asset::plugin(pluginInstance, "res/HexJack.svg")));
+    }
+};
+
 struct ShinyKnob : RoundKnob {
     ShinyKnob() {
         setSvg(Svg::load(asset::plugin(pluginInstance, "res/ShinyKnob.svg")));
