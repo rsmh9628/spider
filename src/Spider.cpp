@@ -476,15 +476,15 @@ struct SpiderWidget : ModuleWidget {
         {Vec(484.669, 142.881), Vec(442.08, 119.803), Vec(484.68, 94.823)},
         {Vec(384.886, 250.865), Vec(347.086, 274.153), Vec(347.086, 232.202)},
         {Vec(124.114, 250.865), Vec(161.914, 274.153), Vec(161.914, 232.202)},
-        {Vec(25.331, 142.881), Vec(67.92, 119.803), Vec(25.32, 94.823)}};
+        {   Vec(25.331, 142.881), Vec(67.92, 119.803), Vec(25.32, 94.823)}};
 
     const Vec displayPositions[OPERATOR_COUNT] = {mm2px(Vec(38.278, 7.297)),   mm2px(Vec(112.840, 8.297)),
                                                   mm2px(Vec(146.850, 53.862)), mm2px(Vec(113.830, 100.283)),
                                                   mm2px(Vec(37.291, 100.283)), mm2px(Vec(4.241, 53.862))};
 
-    const Vec opSelectorPositions[OPERATOR_COUNT] = {mm2px(Vec(73.961, 47.245)),  mm2px(Vec(98.758, 47.245)),
-                                                     mm2px(Vec(111.157, 60.146)), mm2px(Vec(98.758, 73.047)),
-                                                     mm2px(Vec(73.962, 73.047)),  mm2px(Vec(61.563, 60.146))};
+    const Vec opSelectorPositions[OPERATOR_COUNT] = {Vec(218.464, 144.534),  Vec(290.345, 144.534),
+                                                     Vec(326.025, 177.914), Vec(290.345, 210.825),
+                                                     Vec(218.464, 210.825),  Vec(183.003, 177.914)};
     SpiderWidget(Spider* module) {
         setModule(module);
         setPanel(createPanel(asset::plugin(pluginInstance, "res/PostHumanFM.svg")));
@@ -536,9 +536,9 @@ struct SpiderWidget : ModuleWidget {
                 createParamCentered<AttenuatorKnob>(wavePositions[i].cvParamPos, module, Spider::WAVE_CV_PARAMS + i));
             addInput(createInputCentered<HexJack>(wavePositions[i].inputPos, module, Spider::WAVE_INPUTS + i));
 
-            addParam(createLightParamCentered<VCVLightButton<RedLight>>(
-                opSelectorPositions[i], module, Spider::SELECT_PARAMS + i, Spider::SELECT_LIGHTS + i));
-            addChild(createRingLight(opSelectorPositions[i], module, Spider::CARRIER_LIGHTS + i, i));
+            addParam(createParamCentered<OperatorButton>(
+                opSelectorPositions[i], module, Spider::SELECT_PARAMS + i));
+            //addChild(createRingLight(opSelectorPositions[i], module, i));
 
             if (module) {
                 for (int j = 0; j < OPERATOR_COUNT; ++j) {

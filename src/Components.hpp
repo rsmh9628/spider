@@ -46,8 +46,8 @@ struct ConnectionLight : ModuleLightWidget {
     }
 
     void drawBackground(const Widget::DrawArgs& args) override {
-        NVGcolor strokeColour = nvgRGB(50, 50, 50);
-        drawSegmentedLine(args.vg, start, end, strokeColour, 1.0f, false);
+        NVGcolor strokeColour = nvgRGB(20, 20, 20);
+        drawSegmentedLine(args.vg, start, end, strokeColour, 1.f, false);
     }
 
     void drawLight(const Widget::DrawArgs& args) override {
@@ -57,40 +57,36 @@ struct ConnectionLight : ModuleLightWidget {
     void drawSegmentedLine(NVGcontext* vg, const Vec& start, const Vec& end, NVGcolor color, float alpha,
                            bool animated) {
         nvgStrokeWidth(vg, 1.f);    // TODO: magic number
-        nvgLineCap(vg, NVG_SQUARE); // Set line cap to miter
 
         Vec p0 = start;
         Vec p1 = end;
 
         Vec direction = p1.minus(p0).normalize();
         float totalLength = sqrt(pow(p1.x - p0.x, 2) + pow(p1.y - p0.y, 2));
-        float gap = totalLength / 10.0f;
-        float segmentLength = (totalLength - 3 * gap) / 4.0f;
+        float gap = 7.0f; // Fixed segment gap
+        int numSegments = static_cast<int>(totalLength / gap);
 
-        for (int i = 0; i < 4; ++i) {
-            nvgBeginPath(vg);
-            Vec segmentStart = p0.plus(direction.mult((segmentLength + gap) * i));
-            Vec segmentEnd = segmentStart.plus(direction.mult(segmentLength));
+        for (int i = 0; i < numSegments; ++i) {
+            Vec segmentStart = p0.plus(direction.mult(gap * i));
             float segmentAlpha = 1.f;
 
             if (animated) {
                 if (animTime < 0.5f) {
-                    segmentAlpha = std::min(1.0f, std::max(0.0f, animTime * 8 - (flipped ? (3 - i) : i)));
+                    segmentAlpha = std::min(1.0f, std::max(0.0f, animTime * 2 * numSegments - (flipped ? (numSegments - 1 - i) : i)));
                 } else {
-                    segmentAlpha = std::min(1.0f, std::max(0.0f, (1.0f - animTime) * 8 - (flipped ? i : (3 - i))));
+                    segmentAlpha = std::min(1.0f, std::max(0.0f, (1.0f - animTime) * 2 * numSegments - (flipped ? i : (numSegments - 1 - i))));
                 }
             } else {
                 segmentAlpha = 1.0f;
             }
 
-            nvgMoveTo(vg, segmentStart.x, segmentStart.y);
-            nvgLineTo(vg, segmentEnd.x, segmentEnd.y);
-
             auto segmentColour = color;
             segmentColour.a = alpha * segmentAlpha;
 
-            nvgStrokeColor(vg, segmentColour);
-            nvgStroke(vg);
+            nvgBeginPath(vg);
+            nvgCircle(vg, segmentStart.x, segmentStart.y, 2.0f); // Draw circle with radius 2.0f
+            nvgFillColor(vg, segmentColour);
+            nvgFill(vg);
         }
     }
 
@@ -114,32 +110,32 @@ struct ConnectionLight : ModuleLightWidget {
     }
 
     void drawHalo(const Widget::DrawArgs& args) override {
-        // Draw the glow around the light
-        float radius = 5.0f;
-
-        float x = start.x - radius;
-        float y = start.y - radius;
-        float w = length + radius * 2;
-        float h = radius + radius;
-
-        float haloBrightness = rack::settings::haloBrightness;
-
-        if (flipped) {
-            // nvgTranslate(args.vg, end.x, end.y);
-            nvgRotate(args.vg, angle + M_PI);
-        } else {
-            nvgRotate(args.vg, angle);
-        }
-
-        nvgBeginPath(args.vg);
-
-        nvgRoundedRect(args.vg, x - w, y - h, w * 3.f, h * 3.f, h * 1.0f);
-        nvgFillPaint(args.vg, nvgBoxGradient(args.vg, x, y, w, h, 0.0f, h * 0.5f,
-                                             rack::color::mult(OPERATOR_COLOURS[op0],
-                                                               getLight(0)->getBrightness() * haloBrightness),
-                                             nvgRGBA(0, 0, 0, 0)));
-        nvgFill(args.vg);
-
+        //// Draw the glow around the light
+        //float radius = 5.0f;
+//
+        //float x = start.x - radius;
+        //float y = start.y - radius;
+        //float w = length + radius * 2;
+        //float h = radius + radius;
+//
+        //float haloBrightness = rack::settings::haloBrightness;
+//
+        //if (flipped) {
+        //    // nvgTranslate(args.vg, end.x, end.y);
+        //    nvgRotate(args.vg, angle + M_PI);
+        //} else {
+        //    nvgRotate(args.vg, angle);
+        //}
+//
+        //nvgBeginPath(args.vg);
+//
+        //nvgRoundedRect(args.vg, x - w, y - h, w * 3.f, h * 3.f, h * 1.0f);
+        //nvgFillPaint(args.vg, nvgBoxGradient(args.vg, x, y, w, h, 0.0f, h * 0.5f,
+        //                                     rack::color::mult(OPERATOR_COLOURS[op0],
+        //                                                       getLight(0)->getBrightness() * haloBrightness),
+        //                                     nvgRGBA(0, 0, 0, 0)));
+        //nvgFill(args.vg);
+//
         // float indicatorX = indicatorPos.x - radius;
         // float indicatorY = indicatorPos.y - radius;
         //
@@ -162,7 +158,7 @@ struct ConnectionLight : ModuleLightWidget {
         }
 
         if (getLight(0)->getBrightness() > 0.0f) {
-            animTime += 0.025f;
+            animTime += 0.01f;
             if (animTime >= 1.0f) {
                 animTime = 0.0f;
             }
@@ -270,5 +266,13 @@ RingLight* createRingLight(Vec pos, Module* module, int firstLightId, int op) {
     light->firstLightId = firstLightId;
     return light;
 }
+
+struct OperatorButton : app::SvgSwitch {
+	OperatorButton() {
+		momentary = true;
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/Operator1_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/Operator1_1.svg")));
+	}
+};
 
 } // namespace ph

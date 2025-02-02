@@ -1,5 +1,7 @@
 {
     "files.associations": {
+        ".phproj": "json",
+        "*.phproj": "json",
         "any": "cpp",
         "array": "cpp",
         "atomic": "cpp",
@@ -78,6 +80,13 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "valarray": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "filesystem": "cpp",
+        "ranges": "cpp",
+        "xhash": "cpp",
+        "xiosbase": "cpp",
+        "xstring": "cpp",
+        "xtree": "cpp",
+        "xutility": "cpp"
     },
 }
