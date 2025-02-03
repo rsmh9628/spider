@@ -426,21 +426,21 @@ struct Spider : Module {
     }
 
     void onRandomize() {
-        //algorithmGraph.clear();
-        //clearConnectionLights();
-//
-        //for (int i = 0; i < OPERATOR_COUNT; ++i) {
-        //    carriers[i] = random::uniform() > 0.5f;
-//
-        //    for (int j = 0; j < OPERATOR_COUNT; ++j) {
-        //        if (random::uniform() > 0.75f) {
-        //            algorithmGraph.addEdge(i, j);
-        //        }
-        //    }
-        //}
-//
-        //topologicalOrder = algorithmGraph.topologicalSort();
-        //setConnectionLights();
+        algorithmGraph.clear();
+        clearConnectionLights();
+        
+        for (int i = 0; i < OPERATOR_COUNT; ++i) {
+            carriers[i] = random::uniform() > 0.5f;
+        
+            for (int j = 0; j < OPERATOR_COUNT; ++j) {
+                if (random::uniform() > 0.75f) {
+                    algorithmGraph.addEdge(i, j);
+                }
+            }
+        }
+        
+        topologicalOrder = algorithmGraph.topologicalSort();
+        setConnectionLights();
 
         Module::onRandomize();
     }
