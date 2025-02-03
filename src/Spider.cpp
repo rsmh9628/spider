@@ -1,8 +1,7 @@
 #include "plugin.hpp"
 #include "DirectedGraph.hpp"
 #include "Components.hpp"
-// #include "Wavetable.hpp"
-// #include "WavetableDisplay.hpp"
+#include "WaveDisplay.hpp"
 
 #include <array>
 
@@ -14,6 +13,13 @@ constexpr int CONNECTION_COUNT = OPERATOR_COUNT * OPERATOR_COUNT;
 } // anonymous namespace
 
 namespace ph {
+
+template <typename T>
+T sin2pi_pade_05_5_4(T x) {
+	x -= 0.5f;
+	return (T(-6.283185307) * x + T(33.19863968) * simd::pow(x, 3) - T(32.44191367) * simd::pow(x, 5))
+	       / (1 + T(1.296008659) * simd::pow(x, 2) + T(0.7028072946) * simd::pow(x, 4));
+}
 
 struct Spider : Module {
 
@@ -195,22 +201,22 @@ struct Spider : Module {
         auto outs = processOperators(channels, args.sampleTime, freqs);
 
         getOutput(AUDIO_OUTPUT).setChannels(channels);
-
+        
         for (int c = 0; c < channels; c++) {
             float output = 0.f;
-
+        
             for (int op = 0; op < OPERATOR_COUNT; ++op) {
                 if (carriers[op]) {
                     output += outs[op * channels + c];
                 }
             }
-
+        
             if (output > 1.f) {
                 output = 1.f;
             } else if (output < -1.f) {
                 output = -1.f;
             }
-
+        
             getOutput(AUDIO_OUTPUT).setVoltage(5 * output, c);
         }
     }
@@ -226,8 +232,17 @@ struct Spider : Module {
     }
 
     void processOperator(int op, int channels, float sampleTime, std::vector<float>& outs, std::vector<float>& freqs) {
-        // TODO: only process an operator if it has a level
+        float level = getParam(LEVEL_PARAMS + op).getValue();
+        float levelCv = getParam(LEVEL_CV_PARAMS + op).getValue();
 
+        if (getInput(LEVEL_INPUTS + op).isConnected()) {
+            level += levelCv * getInput(LEVEL_INPUTS + op).getVoltage() / 10.f;
+        }
+
+        if (level == 0.f) {
+            return;
+        }
+        
         float pitchShift = getParam(MULT_PARAMS + op).getValue();
         float pitchShiftCv = getParam(MULT_CV_PARAMS + op).getValue();
 
@@ -245,13 +260,6 @@ struct Spider : Module {
         }
 
         wavePos = clamp(wavePos, 0.f, 1.f);
-
-        float level = getParam(LEVEL_PARAMS + op).getValue();
-        float levelCv = getParam(LEVEL_CV_PARAMS + op).getValue();
-
-        if (getInput(LEVEL_INPUTS + op).isConnected()) {
-            level += levelCv * getInput(LEVEL_INPUTS + op).getVoltage() / 10.f;
-        }
 
         const auto& modulators = algorithmGraph.getAdjacentVerticesRev(op);
 
@@ -287,7 +295,11 @@ struct Spider : Module {
 
             // outs[op * channels + c] = level * getInterpolatedWtSample(op, phase[op * channels + c], wavePos);
 
-            float sine = std::sin(2 * M_PI * ph);
+            float normalizedPh = ph; 
+            if (normalizedPh < 0) {
+                normalizedPh += 1.0f;
+            }
+            float sine = sin2pi(normalizedPh);
             // Triangle
             float triangle = 4.f * std::abs(std::round(ph) - ph) - 1.f;
 
@@ -414,21 +426,21 @@ struct Spider : Module {
     }
 
     void onRandomize() {
-        algorithmGraph.clear();
-        clearConnectionLights();
-
-        for (int i = 0; i < OPERATOR_COUNT; ++i) {
-            carriers[i] = random::uniform() > 0.5f;
-
-            for (int j = 0; j < OPERATOR_COUNT; ++j) {
-                if (random::uniform() > 0.75f) {
-                    algorithmGraph.addEdge(i, j);
-                }
-            }
-        }
-
-        topologicalOrder = algorithmGraph.topologicalSort();
-        setConnectionLights();
+        //algorithmGraph.clear();
+        //clearConnectionLights();
+//
+        //for (int i = 0; i < OPERATOR_COUNT; ++i) {
+        //    carriers[i] = random::uniform() > 0.5f;
+//
+        //    for (int j = 0; j < OPERATOR_COUNT; ++j) {
+        //        if (random::uniform() > 0.75f) {
+        //            algorithmGraph.addEdge(i, j);
+        //        }
+        //    }
+        //}
+//
+        //topologicalOrder = algorithmGraph.topologicalSort();
+        //setConnectionLights();
 
         Module::onRandomize();
     }
@@ -520,6 +532,7 @@ struct SpiderWidget : ModuleWidget {
             // display->op = i;
 
             // addChild(display);
+            addChild(createWidget<WaveDisplay>(displayPositions[i]));
 
             addParam(createParamCentered<ShinyKnob>(multPositions[i].paramPos, module, Spider::MULT_PARAMS + i));
             addParam(

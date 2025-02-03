@@ -3,6 +3,7 @@
 #include <rack.hpp>
 #include "Colour.hpp"
 #include "plugin.hpp"
+#include <functional>
 
 using namespace rack;
 
@@ -46,47 +47,125 @@ struct ConnectionLight : ModuleLightWidget {
     }
 
     void drawBackground(const Widget::DrawArgs& args) override {
-        NVGcolor strokeColour = nvgRGB(20, 20, 20);
-        drawSegmentedLine(args.vg, start, end, strokeColour, 1.f, false);
+        NVGcolor strokeColour = nvgRGB(30, 30, 30);
+        
+        drawDottedLine(args.vg, [strokeColour](NVGcontext* vg, int, int, Vec pos) {
+            nvgBeginPath(vg);
+            nvgCircle(vg, pos.x, pos.y, 1.5f);
+
+            nvgFillColor(vg, strokeColour);
+            nvgFill(vg);
+        });
     }
 
     void drawLight(const Widget::DrawArgs& args) override {
-        drawSegmentedLine(args.vg, start, end, OPERATOR_COLOURS[op0], getLight(0)->getBrightness(), true);
-    }
-
-    void drawSegmentedLine(NVGcontext* vg, const Vec& start, const Vec& end, NVGcolor color, float alpha,
-                           bool animated) {
-        nvgStrokeWidth(vg, 1.f);    // TODO: magic number
-
-        Vec p0 = start;
-        Vec p1 = end;
-
-        Vec direction = p1.minus(p0).normalize();
-        float totalLength = sqrt(pow(p1.x - p0.x, 2) + pow(p1.y - p0.y, 2));
-        float gap = 7.0f; // Fixed segment gap
-        int numSegments = static_cast<int>(totalLength / gap);
-
-        for (int i = 0; i < numSegments; ++i) {
-            Vec segmentStart = p0.plus(direction.mult(gap * i));
-            float segmentAlpha = 1.f;
-
-            if (animated) {
-                if (animTime < 0.5f) {
-                    segmentAlpha = std::min(1.0f, std::max(0.0f, animTime * 2 * numSegments - (flipped ? (numSegments - 1 - i) : i)));
-                } else {
-                    segmentAlpha = std::min(1.0f, std::max(0.0f, (1.0f - animTime) * 2 * numSegments - (flipped ? i : (numSegments - 1 - i))));
-                }
-            } else {
-                segmentAlpha = 1.0f;
-            }
-
-            auto segmentColour = color;
-            segmentColour.a = alpha * segmentAlpha;
-
+        drawDottedLine(args.vg, [this](NVGcontext* vg, int i, int numDots, Vec pos) {
             nvgBeginPath(vg);
-            nvgCircle(vg, segmentStart.x, segmentStart.y, 2.0f); // Draw circle with radius 2.0f
+            nvgCircle(vg, pos.x, pos.y, 1.5f);
+
+            float dotAlpha = 1.f;
+            float t;
+            if (flipped) {
+                t = animTime + i * 0.1f;
+            } else {
+                t = animTime + (numDots - i) * 0.1f;
+            }
+            dotAlpha = 0.5f + 0.5f * std::sin(t * 2.0f * M_PI);
+
+            auto segmentColour = OPERATOR_COLOURS[op0];
+            segmentColour.a = getLight(0)->getBrightness() * dotAlpha;
+
             nvgFillColor(vg, segmentColour);
             nvgFill(vg);
+        });
+        
+        //drawDottedLine(args.vg, start, end, OPERATOR_COLOURS[op0], getLight(0)->getBrightness(), true);
+    }
+
+    void drawHalo(const Widget::DrawArgs& args) override {
+        if (args.fb) 
+            return;
+        
+        if (rack::settings::haloBrightness <= 0.0f)
+            return;
+        
+        drawDottedLine(args.vg, [this](NVGcontext* vg, int i, int numDots, Vec pos) {
+            nvgBeginPath(vg);
+            nvgCircle(vg, pos.x, pos.y, 8.0f);
+
+            float dotAlpha = 1.f;
+            float t;
+            if (flipped) {
+                t = animTime + i * 0.1f;
+            } else {
+                t = animTime + (numDots - i) * 0.1f;
+            }
+            dotAlpha = 0.5f + 0.5f * std::sin(t * 2.0f * M_PI);
+
+            auto segmentColour = OPERATOR_COLOURS[op0];
+            segmentColour.a = getLight(0)->getBrightness() * dotAlpha * rack::settings::haloBrightness;
+
+            auto ocol = nvgRGBAf(0.0f, 0.0f, 0.0f, 0.0f);
+            NVGpaint paint = nvgRadialGradient(vg, pos.x, pos.y, 2.0f, 8.0f, segmentColour, nvgRGBAf(0.f, 0.f, 0.f, 0.f));
+            nvgFillPaint(vg, paint);
+            nvgFill(vg);
+        });
+    }
+
+    std::vector<Vec> calculateDotPositions() {
+        const float dotSpacing = 7.0f;
+
+        std::vector<Vec> positions;
+        float distance = std::sqrt(std::pow(end.x - start.x, 2) + std::pow(end.y - start.y, 2));
+        int numDots = static_cast<int>(distance / dotSpacing); 
+        float dx = (end.x - start.x) / numDots;
+        float dy = (end.y - start.y) / numDots;
+
+        for (int i = 0; i <= numDots; ++i) {
+            float x = start.x + i * dx;
+            float y = start.y + i * dy;
+            positions.push_back(Vec(x, y));
+        }
+
+        return positions;
+    }
+
+    void drawDottedLine(NVGcontext* vg, std::function<void(NVGcontext*, int, int, Vec)> drawFunc) {
+        const float dotSpacing = 7.0f;
+
+        std::vector<Vec> positions;
+        float distance = std::sqrt(std::pow(end.x - start.x, 2) + std::pow(end.y - start.y, 2));
+        int numDots = static_cast<int>(distance / dotSpacing); 
+        float dx = (end.x - start.x) / numDots;
+        float dy = (end.y - start.y) / numDots;
+
+        for (int i = 0; i <= numDots; ++i) {
+            float x = start.x + i * dx;
+            float y = start.y + i * dy;
+
+            drawFunc(vg, i, numDots, Vec(x, y));
+            //nvgBeginPath(vg);
+            //nvgCircle(vg, x, y, 2.0f); // Adjust the radius of the dots as needed
+            //
+            //float segmentAlpha = 1.f;
+//
+            //if (animated) {
+            //    float t;
+            //    if (flipped) {
+            //        t = animTime + i * 0.1f;
+            //    } else {
+            //        t = animTime + (numDots - i) * 0.1f;
+            //    }
+            //    segmentAlpha = 0.5f + 0.5f * std::sin(t * 2.0f * M_PI);
+            //} else {
+            //    segmentAlpha = 1.0f;
+            //}
+//
+            //auto segmentColour = color;
+            //segmentColour.a = alpha * segmentAlpha;
+//
+            //nvgFillColor(vg, segmentColour);
+            //nvgFill(vg);
         }
     }
 
@@ -107,49 +186,6 @@ struct ConnectionLight : ModuleLightWidget {
 
         nvgStrokeColor(vg, colour);
         nvgStroke(vg);
-    }
-
-    void drawHalo(const Widget::DrawArgs& args) override {
-        //// Draw the glow around the light
-        //float radius = 5.0f;
-//
-        //float x = start.x - radius;
-        //float y = start.y - radius;
-        //float w = length + radius * 2;
-        //float h = radius + radius;
-//
-        //float haloBrightness = rack::settings::haloBrightness;
-//
-        //if (flipped) {
-        //    // nvgTranslate(args.vg, end.x, end.y);
-        //    nvgRotate(args.vg, angle + M_PI);
-        //} else {
-        //    nvgRotate(args.vg, angle);
-        //}
-//
-        //nvgBeginPath(args.vg);
-//
-        //nvgRoundedRect(args.vg, x - w, y - h, w * 3.f, h * 3.f, h * 1.0f);
-        //nvgFillPaint(args.vg, nvgBoxGradient(args.vg, x, y, w, h, 0.0f, h * 0.5f,
-        //                                     rack::color::mult(OPERATOR_COLOURS[op0],
-        //                                                       getLight(0)->getBrightness() * haloBrightness),
-        //                                     nvgRGBA(0, 0, 0, 0)));
-        //nvgFill(args.vg);
-//
-        // float indicatorX = indicatorPos.x - radius;
-        // float indicatorY = indicatorPos.y - radius;
-        //
-        // float indicatorW = radius + radius;
-        // float indicatorH = radius + radius;
-        //
-        // nvgBeginPath(args.vg);
-        // nvgRoundedRect(args.vg, indicatorX - indicatorW, indicatorY - indicatorH, w * 3.f, h * 3.f, h * 1.0f);
-        // nvgFillPaint(args.vg, nvgRadialGradient(args.vg, indicatorPos.x, indicatorPos.y, 0.0f, indicatorRadius,
-        //                                          nvgRGB(255, 255, 255), nvgRGB(0, 0, 0)));
-        //
-        // nvgFill(args.vg);
-
-        // nvgFillColor(args.vg, nvgRGB(255, 255, 255));
     }
 
     void step() override {
