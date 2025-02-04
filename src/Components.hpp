@@ -7,21 +7,11 @@
 
 using namespace rack;
 
-#define DEFINE_OP_LIGHT(N)                           \
-    \ 
-    struct TOp##N##Light : GrayModuleLightWidget {   \
-        TOp##N##Light() {                            \
-            this->addBaseColor(OPERATOR_COLOURS[N]); \
-        }                                            \
-    };                                               \
-    using Op##N##Light = TOp##N##Light;
-
 namespace ph {
 
 struct ConnectionLight : ModuleLightWidget {
-    ConnectionLight(Vec p0, Vec p1, int op0, int op1)
-        : op0(op0)
-        , op1(op1) {
+    ConnectionLight(Vec p0, Vec p1, int op)
+        : op(op) {
         this->angle = atan2(p1.y - p0.y, p1.x - p0.x);
 
         // Calculate new endpoint on the edge of the button
@@ -72,14 +62,14 @@ struct ConnectionLight : ModuleLightWidget {
             }
             dotAlpha = 0.5f + 0.5f * std::sin(t * 2.0f * M_PI);
 
-            auto segmentColour = OPERATOR_COLOURS[op0];
+            auto segmentColour = OPERATOR_COLOURS[op];
             segmentColour.a = getLight(0)->getBrightness() * dotAlpha;
 
             nvgFillColor(vg, segmentColour);
             nvgFill(vg);
         });
         
-        //drawDottedLine(args.vg, start, end, OPERATOR_COLOURS[op0], getLight(0)->getBrightness(), true);
+        //drawDottedLine(args.vg, start, end, OPERATOR_COLOURS[op], getLight(0)->getBrightness(), true);
     }
 
     void drawHalo(const Widget::DrawArgs& args) override {
@@ -102,7 +92,7 @@ struct ConnectionLight : ModuleLightWidget {
             }
             dotAlpha = 0.5f + 0.5f * std::sin(t * 2.0f * M_PI);
 
-            auto segmentColour = OPERATOR_COLOURS[op0];
+            auto segmentColour = OPERATOR_COLOURS[op];
             segmentColour.a = getLight(0)->getBrightness() * dotAlpha * rack::settings::haloBrightness;
 
             auto ocol = nvgRGBAf(0.0f, 0.0f, 0.0f, 0.0f);
@@ -213,8 +203,7 @@ private:
     bool flipped = false;
     Vec start = {0, 0};
     Vec end;
-    int op0 = 0;
-    int op1 = 0;
+    int op = 0;
     float animTime = 0.0f;
     Vec indicatorPos = {0, 0};
     float indicatorAlpha = 1.0f;
@@ -224,15 +213,9 @@ private:
     float angle;
     float length;
 };
-DEFINE_OP_LIGHT(0)
-DEFINE_OP_LIGHT(1)
-DEFINE_OP_LIGHT(2)
-DEFINE_OP_LIGHT(3)
-DEFINE_OP_LIGHT(4)
-DEFINE_OP_LIGHT(5)
 
-ConnectionLight* createConnectionLight(Vec p0, Vec p1, Module* module, int firstLightId, int op0, int op1) {
-    auto* light = new ConnectionLight(p0, p1, op0, op1);
+ConnectionLight* createConnectionLight(Vec p0, Vec p1, Module* module, int firstLightId, int op) {
+    auto* light = new ConnectionLight(p0, p1, op);
     light->module = module;
     light->firstLightId = firstLightId;
     return light;
@@ -265,27 +248,37 @@ struct AttenuatorKnob : Trimpot {
     }
 };
 
-struct RingLight : GrayModuleLightWidget {
-    RingLight(Vec pos, int op) {
+struct HexLight : GrayModuleLightWidget {
+    HexLight(Vec pos, int op) {
         this->box.pos = pos - Vec(radius, radius);
         this->addBaseColor(OPERATOR_COLOURS[op]);
+        this->addBaseColor(nvgRGB(255, 255, 255));
         this->box.size = Vec(20, 20);
     }
 
     void drawBackground(const Widget::DrawArgs& args) override {
-        nvgBeginPath(args.vg);
-        nvgCircle(args.vg, radius, radius, radius);
-
-        nvgStrokeColor(args.vg, nvgRGB(50, 50, 50));
-        nvgStrokeWidth(args.vg, 1.f);
-        nvgStroke(args.vg);
+        //nvgBeginPath(args.vg);
+//
+        //for (int i = 0; i < 6; i++) {
+        //    float angle = M_PI / 3.0 * i;
+        //    float x = radius + radius * cos(angle);
+        //    float y = radius + radius * sin(angle);
+        //    if (i == 0) {
+        //        nvgMoveTo(args.vg, x, y);
+        //    } else {
+        //        nvgLineTo(args.vg, x, y);
+        //    }
+        //}
+//
+        //nvgStrokeColor(args.vg, nvgRGB(50, 50, 50));
+        //nvgStrokeWidth(args.vg, 1.f);
+        //nvgStroke(args.vg);
     }
 
     void drawLight(const Widget::DrawArgs& args) override {
+        
         if (color.a > 0.0) {
-
-            nvgBeginPath(args.vg);
-            nvgCircle(args.vg, radius, radius, radius);
+            drawHexagon(args);
 
             nvgStrokeColor(args.vg, color);
             nvgStrokeWidth(args.vg, 1.f);
@@ -293,11 +286,26 @@ struct RingLight : GrayModuleLightWidget {
         }
     }
 
+    void drawHexagon(const Widget::DrawArgs& args) {
+        nvgBeginPath(args.vg);
+        for (int i = 0; i < 6; i++) {
+            float angle = M_PI / 3.0 * i;
+            float x = radius + radius * cos(angle);
+            float y = radius + radius * sin(angle);
+            if (i == 0) {
+                nvgMoveTo(args.vg, x, y);
+            } else {
+                nvgLineTo(args.vg, x, y);
+            }
+        }
+        nvgClosePath(args.vg);
+    }
+
     float radius = 10.f;
 };
 
-RingLight* createRingLight(Vec pos, Module* module, int firstLightId, int op) {
-    auto* light = new RingLight(pos, op);
+HexLight* createHexLight(Vec pos, Module* module, int firstLightId, int op) {
+    auto* light = new HexLight(pos, op);
     light->module = module;
     light->firstLightId = firstLightId;
     return light;

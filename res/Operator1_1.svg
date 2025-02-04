@@ -1,18 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" width="23.7" height="23.7" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 23.7 23.7">
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" width="17" height="17" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 17 17">
   <!-- Generator: Adobe Illustrator 29.2.1, SVG Export Plug-In . SVG Version: 2.1.0 Build 116)  -->
   <defs>
-    <linearGradient id="linear-gradient" x1="2.331" y1="113.664" x2="19.638" y2="113.664" gradientTransform="translate(125.7 23.7) rotate(-90) scale(1 -1)" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#1f1f1f"/>
-      <stop offset="1" stop-color="#050505"/>
-    </linearGradient>
+    <radialGradient id="radial-gradient" cx="8.5" cy="8.5" fx="8.5" fy="8.5" r="6.766" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#242424"/>
+      <stop offset="1" stop-color="#121212"/>
+    </radialGradient>
   </defs>
-  <g>
-    <polygon points="6.083 2.423 .186 12.66 6.083 23.008 12.036 23.008 12.036 2.423 6.083 2.423" fill="#4d4d4d"/>
-    <polygon points="12.036 23.008 17.988 23.008 23.886 12.772 17.988 2.423 12.036 2.423 12.036 23.008" fill="#4d4d4d"/>
-  </g>
-  <polygon points="17.55 22.25 6.522 22.25 1.059 12.664 6.522 3.181 17.55 3.181 23.013 12.768 17.55 22.25" fill="#787878"/>
-  <polygon points="6.786 21.794 17.286 21.794 22.488 12.765 22.46 12.716 1.612 12.716 6.786 21.794" fill="#5e5e5e"/>
-  <polygon points="22.46 12.716 17.286 3.638 6.786 3.638 1.584 12.666 1.612 12.716 22.46 12.716" fill="#404040"/>
-  <polygon points="17.046 21.369 7.026 21.369 1.965 12.665 7.026 4.062 17.046 4.062 22.107 12.767 17.046 21.369" fill="url(#linear-gradient)"/>
+  <polygon points="12.769 15.883 4.231 15.883 0 8.46 4.231 1.117 12.769 1.117 17 8.54 12.769 15.883" fill="#212121"/>
+  <path d="M1.276,8.463" fill="#fff" stroke="#000" stroke-miterlimit="10"/>
+  <polygon points="12.129 14.774 4.871 14.774 1.276 8.466 4.871 2.226 12.129 2.226 15.724 8.534 12.129 14.774" fill="url(#radial-gradient)"/>
 </svg>

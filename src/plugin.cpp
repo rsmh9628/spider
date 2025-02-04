@@ -28,6 +28,11 @@ namespace ph {
     }
 
     float sin2pi(float x) {
+        if (x < 0.f)
+            x = 0;
+        if (x > 1.f)
+            x = 1;
+
         x *= TABLE_SIZE;
         int i = (int)x;
         float f = x - i;

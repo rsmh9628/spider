@@ -2,17 +2,17 @@
 <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" width="17" height="17" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 17 17">
   <!-- Generator: Adobe Illustrator 29.2.1, SVG Export Plug-In . SVG Version: 2.1.0 Build 116)  -->
   <defs>
-    <linearGradient id="linear-gradient" x1="-87.293" y1="10.8" x2="-99.707" y2="10.8" gradientTransform="translate(-2.3 -85) rotate(-90)" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#3b3b3b"/>
-      <stop offset="1" stop-color="#000"/>
+    <linearGradient id="linear-gradient" x1="-197.293" y1="7.2" x2="-209.707" y2="7.2" gradientTransform="translate(15.7 -195) rotate(-90) scale(1 -1)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#363636"/>
+      <stop offset="1" stop-color="#1a1a1a"/>
     </linearGradient>
   </defs>
+  <polygon points="12.769 15.883 4.231 15.883 0 8.46 4.231 1.117 12.769 1.117 17 8.54 12.769 15.883" fill="#212121"/>
+  <polygon points="12.45 1.669 4.55 1.669 .636 8.463 .657 8.5 16.343 8.5 12.45 1.669" fill="gray"/>
+  <polygon points=".657 8.5 4.55 15.331 12.45 15.331 16.364 8.537 16.343 8.5 .657 8.5" fill="#404040"/>
+  <path d="M1.276,8.463" fill="#fff" stroke="#000" stroke-miterlimit="10"/>
   <g>
-    <polygon points="4.23 1.118 0 8.46 4.23 15.882 8.5 15.882 8.5 1.118 4.23 1.118" fill="#4d4d4d"/>
-    <polygon points="8.5 15.882 12.769 15.882 17 8.54 12.769 1.118 8.5 1.118 8.5 15.882" fill="#4d4d4d"/>
+    <polygon points="11.685 14 15.724 8.537 12.094 2.293 4.906 2.293 1.276 8.463 5.315 14 11.685 14" fill="url(#linear-gradient)"/>
+    <polygon points="11.685 14 5.315 14 1.276 8.463 4.906 14.707 12.094 14.707 15.724 8.537 11.685 14" fill="#1a1a1a"/>
   </g>
-  <polygon points="12.455 15.339 4.545 15.339 .626 8.463 4.545 1.661 12.455 1.661 16.374 8.537 12.455 15.339" fill="#787878"/>
-  <polygon points="12.266 1.988 4.734 1.988 1.003 8.465 1.023 8.5 15.977 8.5 12.266 1.988" fill="#5e5e5e"/>
-  <polygon points="1.023 8.5 4.734 15.012 12.266 15.012 15.997 8.535 15.977 8.5 1.023 8.5" fill="#404040"/>
-  <polygon points="12.094 14.707 4.906 14.707 1.276 8.463 4.906 2.293 12.094 2.293 15.724 8.537 12.094 14.707" fill="url(#linear-gradient)"/>
 </svg>
