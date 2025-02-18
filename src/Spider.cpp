@@ -11,7 +11,6 @@ constexpr int CONNECTION_COUNT = OPERATOR_COUNT * OPERATOR_COUNT;
 constexpr int BUFFER_SIZE = 512;
 constexpr int MAX_CHANNEL_COUNT = 16;
 
-
 } // anonymous namespace
 
 namespace ph {
@@ -116,9 +115,6 @@ struct Spider : Module {
                     }
                     topologicalOrder = algorithmGraph.topologicalSort();
 
-                    // for (auto& op : operators) {
-                    //     op.reset(); // Reset phase of all operators
-                    // }
                     updateTooltips(selectedOperator, false);
                     selectedOperator = -1;
 
@@ -275,7 +271,7 @@ struct Spider : Module {
             float& freq = freqs[op * channels + c];
 
             freq *= dsp::exp2_taylor5(pitchShiftExponent); // +- 12 semitones coarse pitch
-            freq *= dsp::exp2_taylor5(pitchShiftInput * pitchShiftCv); // +-12 semitones pitch shift            
+            freq *= dsp::exp2_taylor5(pitchShiftInput * pitchShiftCv); // +-12 semitones pitch shift        
             // float freq = freqs[c] * dsp::exp2_taylor5(pitchShiftExponent);
             // freq += 5 * modulation;
 
@@ -300,15 +296,6 @@ struct Spider : Module {
             if (ph < -1)
                 ph += 1;
 
-            // phase[op * channels + c] += freq * sampleTime;
-            // TODO: check this is ocrrect because ive changed it to the sine example
-            // if (ph > 1)
-            //    ph -= 1;
-            // if (ph < -1)
-            //    ph += 1;
-
-            // outs[op * channels + c] = level * getInterpolatedWtSample(op, phase[op * channels + c], wavePos);
-
             float normalizedPh = ph; 
             if (normalizedPh < 0) {
                 normalizedPh += 1.0f;
@@ -317,7 +304,7 @@ struct Spider : Module {
             // Triangle
             float triangle = 4.f * std::abs(std::round(ph) - ph) - 1.f;
 
-            // Saw
+            // Saw  
             float saw = 2.f * (ph - std::round(ph));
 
             // Square
@@ -353,26 +340,6 @@ struct Spider : Module {
         }
     }
 
-    // float getInterpolatedWtSample(int op, float phase, float wavePos) {
-    //     float wtIndex = phase * wavetables[op].wavelength;
-    //     float wtIndexF = wtIndex - std::trunc(wtIndex);
-    //
-    //    size_t wtIndex0 = std::trunc(wtIndex);
-    //    size_t wtIndex1 = (wtIndex0 + 1) % wavetables[op].wavelength;
-    //
-    //    float pos = wavePos - std::trunc(wavePos);
-    //    size_t wavePos0 = std::trunc(wavePos);
-    //    size_t wavePos1 = wavePos + 1;
-    //
-    //    float out0 = wavetables[op].sampleAt(wavePos0, wtIndex0);
-    //    float out1 = wavetables[op].sampleAt(wavePos1, wtIndex1);
-    //
-    //    // TODO: Only linearly interpolate if necessary otherwise it breaks
-    //    // Linearly interpolate between the two waves
-    //    float out = crossfade(out0, out1, pos);
-    //    return out;
-    //}
-
     json_t* dataToJson() override {
         json_t* rootJ = json_object();
         json_object_set_new(rootJ, "algorithm", algorithmGraph.toJson());
@@ -388,12 +355,6 @@ struct Spider : Module {
             json_array_append_new(carriersJ, json_boolean(carrier));
         }
         json_object_set_new(rootJ, "carriers", carriersJ);
-
-        // json_t* wavetableArrayJ = json_array();
-        // for (const auto& wt : wavetables) {
-        //     json_array_append_new(wavetableArrayJ, wt.toJson());
-        // }
-        // json_object_set_new(rootJ, "wavetables", wavetableArrayJ);
 
         return rootJ;
     }
@@ -479,13 +440,11 @@ struct Spider : Module {
     std::array<float, OPERATOR_COUNT * 16> phase;
 
     // only one channel is needed for the buffers
-    
     // point buffer for the scope displays
     std::array<int, OPERATOR_COUNT> bufferIndex = {0,0,0,0,0,0};
     std::array<int, OPERATOR_COUNT> frameIndex = {0,0,0,0,0,0};
     std::array<std::array<float, BUFFER_SIZE>, OPERATOR_COUNT> pointBuffer = {};
 
-    // std::array<Wavetable, OPERATOR_COUNT> wavetables;
     std::array<float, OPERATOR_COUNT> lastWavePos;
     std::array<bool, OPERATOR_COUNT> carriers = {};
     std::array<dsp::BooleanTrigger, OPERATOR_COUNT> operatorTriggers;
@@ -568,10 +527,8 @@ struct SpiderDisplay : public OpaqueWidget {
     int op = 0;
 };
 
-// TODO: Organise
 struct SpiderWidget : ModuleWidget {
-
-    // Multiple repeated params for each parameter and operator
+    // Multiple repeated vecs for each parameter and operator
     struct ParameterPositions {
         Vec paramPos;
         Vec inputPos;
@@ -580,30 +537,30 @@ struct SpiderWidget : ModuleWidget {
 
     const ParameterPositions multPositions[OPERATOR_COUNT] = {
         {Vec(86.414, 35.903), Vec(43.814, 58.803), Vec(86.414, 83.783)},
-        {Vec(422.586, 35.903), Vec(465.186, 58.803), Vec(422.586, 83.783)},
+        {Vec(423.586, 35.903), Vec(466.186, 58.803), Vec(423.586, 83.783)},
         {Vec(484.68, 212.875), Vec(442.08, 235.775), Vec(484.68, 260.755)},
-        {Vec(422.586, 320.253), Vec(465.186, 297.353), Vec(422.586, 272.373)},
+        {Vec(423.586, 320.253), Vec(466.186, 297.353), Vec(423.586, 272.373)},
         {Vec(86.414, 320.253), Vec(43.814, 297.353), Vec(86.414, 272.373)},
         {Vec(25.32, 212.875), Vec(67.92, 235.775), Vec(25.32, 260.756)}};
 
     const ParameterPositions levelPositions[OPERATOR_COUNT] = {
         {Vec(197.814, 56.903), Vec(232.414, 91.135), Vec(197.814, 109.703)},
-        {Vec(311.186, 56.903), Vec(276.586, 91.135), Vec(311.186, 109.703)},
+        {Vec(312.186, 56.903), Vec(277.586, 91.135), Vec(312.186, 109.703)},
         {Vec(402.022, 155.209), Vec(367.422, 189.441), Vec(402.022, 208.009)},
-        {Vec(311.186, 299.253), Vec(276.586, 265.022), Vec(311.186, 246.453)},
+        {Vec(312.186, 299.253), Vec(277.586, 265.022), Vec(312.186, 246.453)},
         {Vec(197.814, 299.253), Vec(232.414, 265.022), Vec(197.814, 246.453)},
         {Vec(107.978, 155.209), Vec(142.578, 189.441), Vec(107.978, 208.009)}};
 
     const ParameterPositions wavePositions[OPERATOR_COUNT] = {
         {Vec(124.114, 105.291), Vec(161.914, 82.003), Vec(161.914, 123.954)},
-        {Vec(384.886, 105.291), Vec(347.086, 82.003), Vec(347.086, 123.954)},
+        {Vec(385.886, 105.291), Vec(348.086, 82.003), Vec(348.086, 124.954)},
         {Vec(484.669, 142.881), Vec(442.08, 119.803), Vec(484.68, 94.823)},
-        {Vec(384.886, 250.865), Vec(347.086, 274.153), Vec(347.086, 232.202)},
+        {Vec(385.886, 250.865), Vec(348.086, 274.153), Vec(348.086, 232.202)},
         {Vec(124.114, 250.865), Vec(161.914, 274.153), Vec(161.914, 232.202)},
         {   Vec(25.331, 142.881), Vec(67.92, 119.803), Vec(25.32, 94.823)}};
 
-    const Vec displayPositions[OPERATOR_COUNT] = {Vec(143.163, 35.903), Vec(366.837, 35.903),
-                                                  Vec(472.746, 179.199), Vec(366.837, 318.14),
+    const Vec displayPositions[OPERATOR_COUNT] = {Vec(143.163, 35.903), Vec(367.837, 35.903),
+                                                  Vec(472.746, 179.199), Vec(367.837, 318.14),
                                                   Vec(142.553, 318.14), Vec(37.254, 179.199)};
 
     const Vec opSelectorPositions[OPERATOR_COUNT] = {Vec(218.464, 144.534),  Vec(290.345, 144.534),
@@ -619,19 +576,13 @@ struct SpiderWidget : ModuleWidget {
         addChild(createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
-            // TODO: Clean this up can use only one set of addparam addinput etc. with clever
             SpiderDisplay* display = createWidgetCentered<SpiderDisplay>(displayPositions[i]);
 
             if (module) {
-                // display->wavetable = &fmModule->wavetables[i];
-                //  todo: wavepositioin for control
-                // display->wavePos = &fmModule->lastWavePos[i];
                 display->module = module;
                 display->op = i;
             }
-            // display->op = i;
 
-            // addChild(display);
             addChild(display);
 
             addParam(createParamCentered<ShinyKnob>(multPositions[i].paramPos, module, Spider::PITCH_PARAMS + i));
@@ -663,37 +614,11 @@ struct SpiderWidget : ModuleWidget {
             }
         }
 
-        for (int i = 0; i < OPERATOR_COUNT; ++i) {
-        }
-
         addChild(createInputCentered<HexJack>(mm2px(Vec(67.37f, 117.008f)), module, Spider::VOCT_INPUT));
         addChild(createOutputCentered<HexJack>(mm2px(Vec(105.375f, 117.008f)), module, Spider::AUDIO_OUTPUT));
 
         addChild(createParamCentered<ShinyBigKnob>(mm2px(Vec(86.360f, 113.318f)), module, Spider::FREQ_PARAM));
     }
-
-    void drawOperators() {
-        float x0 = 30;
-        float y0 = 220;
-
-        for (int i = 0; i < OPERATOR_COUNT; ++i) {
-        }
-    }
-
-    void step() override {
-        for (int i = 0; i < OPERATOR_COUNT; ++i) {
-            for (int j = 0; j < OPERATOR_COUNT; ++j) {
-                if (i == j)
-                    continue;
-            }
-        }
-
-        ModuleWidget::step();
-    }
-
-    constexpr static float opRadius = 48.f;
-
-    constexpr static float pi = M_PI;
 };
 
 } // namespace ph

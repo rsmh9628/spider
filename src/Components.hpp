@@ -1,7 +1,6 @@
 #pragma once
 
 #include <rack.hpp>
-#include "Colour.hpp"
 #include "plugin.hpp"
 #include <functional>
 
@@ -121,7 +120,7 @@ struct ConnectionLight : ModuleLightWidget {
     }
 
     void drawDottedLine(NVGcontext* vg, std::function<void(NVGcontext*, int, int, Vec)> drawFunc) {
-        const float dotSpacing = 7.0f;
+        const float dotSpacing = 6.0f;
 
         std::vector<Vec> positions;
         float distance = std::sqrt(std::pow(end.x - start.x, 2) + std::pow(end.y - start.y, 2));

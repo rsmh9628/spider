@@ -1,8 +1,5 @@
 #include "plugin.hpp"
 
-#define DR_WAV_IMPLEMENTATION
-#include "dr_wav.h"
-
 Plugin* pluginInstance;
 
 void init(Plugin* p) {
