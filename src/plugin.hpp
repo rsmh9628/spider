@@ -10,7 +10,6 @@ extern Plugin* pluginInstance;
 extern Model* modelPostHumanSpider;
 
 namespace ph {
-
     const NVGcolor OPERATOR_COLOURS[] = {nvgRGB(255, 31, 57), nvgRGB(255, 75, 31), nvgRGB(255, 184, 51),
                                          nvgRGB(44, 252, 168), nvgRGB(0, 147, 240), nvgRGB(246, 73, 239)};
 

@@ -1,10 +1,11 @@
 {
-  "slug": "PostHuman",
-  "name": "PostHuman",
+  "slug": "PostHuman-Spider-Beta-Test",
+  "name": "PostHuman Spider Beta Test",
+  "description": "Beta test plugin for PostHuman Spider",
   "version": "2.0.0",
   "license": "proprietary",
-  "brand": "rsmh",
-  "author": "rsmh",
+  "brand": "PostHuman",
+  "author": "Ryan Hughes",
   "authorEmail": "",
   "authorUrl": "",
   "pluginUrl": "",
@@ -14,10 +15,10 @@
   "changelogUrl": "",
   "modules": [
     {
-      "slug": "Spider",
-      "name": "PostHuman Spider",
+      "slug": "PostHuman-Spider",
+      "name": "Spider",
       "description": "6-operator FM synth",
-      "tags": ["FM", "Oscillator", "Polyphonic"]
+      "tags": ["Oscillator", "Polyphonic"]
     }
   ]
 }

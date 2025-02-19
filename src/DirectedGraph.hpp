@@ -16,10 +16,6 @@ public:
         , reverseAdjList(vertices) {}
 
     ToggleEdgeResult addEdge(T src, T dest) {
-        if (hasEdge(dest, src)) {
-            return ToggleEdgeResult::CYCLE;
-        }
-
         adjList[src].push_back(dest);
         reverseAdjList[dest].push_back(src);
 
@@ -40,8 +36,10 @@ public:
             removeEdge(dest, src);
             if (addEdge(src, dest) == ToggleEdgeResult::ADDED) {
                 return ToggleEdgeResult::SWAPPED;
-            } else
+            } else {
+                addEdge(dest, src);
                 return ToggleEdgeResult::CYCLE;
+            }
         } else {
             return addEdge(src, dest);
         }
@@ -55,13 +53,13 @@ public:
         reverseList.erase(std::remove(reverseList.begin(), reverseList.end(), src), reverseList.end());
     }
 
-    bool isCyclicHelper(T vertex, std::vector<bool>& visited, std::vector<bool>& recStack) {
+    bool detectCycle(T vertex, std::vector<bool>& visited, std::vector<bool>& recStack) {
         if (!visited[vertex]) {
             visited[vertex] = true;
             recStack[vertex] = true;
 
             for (const auto& dest : adjList[vertex]) {
-                if (!visited[dest] && isCyclicHelper(dest, visited, recStack)) {
+                if (!visited[dest] && detectCycle(dest, visited, recStack)) {
                     return true;
                 } else if (recStack[dest]) {
                     return true;
@@ -77,8 +75,8 @@ public:
         std::vector<bool> visited(adjList.size(), false);
         std::vector<bool> recStack(adjList.size(), false);
 
-        for (T i = 0; i < adjList.size(); i++) {
-            if (isCyclicHelper(i, visited, recStack)) {
+        for (size_t i = 0; i < adjList.size(); i++) {
+            if (detectCycle(i, visited, recStack)) {
                 return true;
             }
         }
@@ -86,17 +84,17 @@ public:
     }
 
     std::vector<T> topologicalSort() const {
-        std::vector<T> inDegree(adjList.size(), 0);
+        std::vector<T> incomingEdgesCount(adjList.size(), 0);
 
         for (const auto& list : adjList) {
             for (const auto& dest : list) {
-                inDegree[dest]++;
+                incomingEdgesCount[dest]++;
             }
         }
 
         std::queue<T> q;
-        for (T i = 0; i < adjList.size(); i++) {
-            if (inDegree[i] == 0) {
+        for (size_t i = 0; i < adjList.size(); i++) {
+            if (incomingEdgesCount[i] == 0) {
                 q.push(i);
             }
         }
@@ -108,7 +106,7 @@ public:
             result.push_back(u);
 
             for (const auto& dest : adjList[u]) {
-                if (--inDegree[dest] == 0) {
+                if (--incomingEdgesCount[dest] == 0) {
                     q.push(dest);
                 }
             }

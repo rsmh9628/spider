@@ -67,8 +67,6 @@ struct ConnectionLight : ModuleLightWidget {
             nvgFillColor(vg, segmentColour);
             nvgFill(vg);
         });
-        
-        //drawDottedLine(args.vg, start, end, OPERATOR_COLOURS[op], getLight(0)->getBrightness(), true);
     }
 
     void drawHalo(const Widget::DrawArgs& args) override {
@@ -94,7 +92,6 @@ struct ConnectionLight : ModuleLightWidget {
             auto segmentColour = OPERATOR_COLOURS[op];
             segmentColour.a = getLight(0)->getBrightness() * dotAlpha * rack::settings::haloBrightness;
 
-            auto ocol = nvgRGBAf(0.0f, 0.0f, 0.0f, 0.0f);
             NVGpaint paint = nvgRadialGradient(vg, pos.x, pos.y, 2.0f, 8.0f, segmentColour, nvgRGBAf(0.f, 0.f, 0.f, 0.f));
             nvgFillPaint(vg, paint);
             nvgFill(vg);
@@ -133,28 +130,6 @@ struct ConnectionLight : ModuleLightWidget {
             float y = start.y + i * dy;
 
             drawFunc(vg, i, numDots, Vec(x, y));
-            //nvgBeginPath(vg);
-            //nvgCircle(vg, x, y, 2.0f); // Adjust the radius of the dots as needed
-            //
-            //float segmentAlpha = 1.f;
-//
-            //if (animated) {
-            //    float t;
-            //    if (flipped) {
-            //        t = animTime + i * 0.1f;
-            //    } else {
-            //        t = animTime + (numDots - i) * 0.1f;
-            //    }
-            //    segmentAlpha = 0.5f + 0.5f * std::sin(t * 2.0f * M_PI);
-            //} else {
-            //    segmentAlpha = 1.0f;
-            //}
-//
-            //auto segmentColour = color;
-            //segmentColour.a = alpha * segmentAlpha;
-//
-            //nvgFillColor(vg, segmentColour);
-            //nvgFill(vg);
         }
     }
 
@@ -252,30 +227,13 @@ struct HexLight : GrayModuleLightWidget {
         this->box.pos = pos - Vec(radius, radius);
         this->addBaseColor(OPERATOR_COLOURS[op]);
         this->addBaseColor(nvgRGB(255, 255, 255));
+        this->addBaseColor(nvgRGB(255, 0, 0));
         this->box.size = Vec(20, 20);
     }
 
-    void drawBackground(const Widget::DrawArgs& args) override {
-        //nvgBeginPath(args.vg);
-//
-        //for (int i = 0; i < 6; i++) {
-        //    float angle = M_PI / 3.0 * i;
-        //    float x = radius + radius * cos(angle);
-        //    float y = radius + radius * sin(angle);
-        //    if (i == 0) {
-        //        nvgMoveTo(args.vg, x, y);
-        //    } else {
-        //        nvgLineTo(args.vg, x, y);
-        //    }
-        //}
-//
-        //nvgStrokeColor(args.vg, nvgRGB(50, 50, 50));
-        //nvgStrokeWidth(args.vg, 1.f);
-        //nvgStroke(args.vg);
-    }
+    void drawBackground(const Widget::DrawArgs& args) override {}
 
     void drawLight(const Widget::DrawArgs& args) override {
-        
         if (color.a > 0.0) {
             drawHexagon(args);
 
@@ -310,11 +268,11 @@ HexLight* createHexLight(Vec pos, Module* module, int firstLightId, int op) {
     return light;
 }
 
-struct OperatorButton : app::SvgSwitch {
-	OperatorButton() {
+struct HexButton : app::SvgSwitch {
+	HexButton() {
 		momentary = true;
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/Operator1_0.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/Operator1_1.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/HexButton_0.svg")));
+		addFrame(Svg::load(asset::plugin(pluginInstance, "res/HexButton_1.svg")));
 	}
 };
 
