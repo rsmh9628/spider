@@ -103,5 +103,5 @@
         "xmemory": "cpp",
         "xtr1common": "cpp",
         "*.inc": "cpp"
-    },
+    }
 }

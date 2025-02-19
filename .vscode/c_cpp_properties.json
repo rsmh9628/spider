@@ -5,13 +5,14 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/../../**",
-                "C:/msys64/mingw64/include"
+                "${workspaceFolder}/../../dep/Catch2/extras",
+                "/usr/include"
             ],
             "defines": [],
             "cStandard": "c17",
             "cppStandard": "c++11",
-            "intelliSenseMode": "windows-gcc-x64",
-            "compilerPath": "C:/msys64/mingw64/bin/gcc.exe"
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
         }
     ],
     "version": 4
