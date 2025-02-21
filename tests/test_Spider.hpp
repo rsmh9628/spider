@@ -25,6 +25,8 @@ class SpiderFixture {
 public:
     std::unique_ptr<Spider> spider;
 
+    int sampleRate = SAMPLES_PER_SECOND;
+
     SpiderFixture() { spider = std::make_unique<Spider>(); }
 
     void doProcess(int samples, std::optional<std::function<void()>> postProcessFunction = std::nullopt,
@@ -32,8 +34,8 @@ public:
         int frame = 0;
 
         Module::ProcessArgs processArgs;
-        processArgs.sampleRate = SAMPLES_PER_SECOND;
-        processArgs.sampleTime = SAMPLE_TIME;
+        processArgs.sampleRate = sampleRate;
+        processArgs.sampleTime = 1.f / sampleRate;
         processArgs.frame = frame;
 
         while (frame < samples) {
@@ -109,12 +111,109 @@ TEST_CASE_METHOD(SpiderFixture, "Output is clamped to -5V, +5V") {
     });
 }
 
-TEST_CASE_METHOD(SpiderFixture, "Frequency parameter varies operator frequency correctly", "[Integration]") {}
+TEST_CASE_METHOD(SpiderFixture, "Audio output is brickwalled sum of carriers") {
+    spider->carriers[0] = true;
+    spider->carriers[1] = true;
+    spider->carriers[2] = true;
+
+    spider->getParam(Spider::LEVEL_PARAMS + 0).setValue(1.f);
+    spider->getParam(Spider::LEVEL_PARAMS + 1).setValue(1.f);
+    spider->getParam(Spider::LEVEL_PARAMS + 2).setValue(1.f);
+
+    std::array<SpiderSignalGenerator, 3> gens;
+
+    doProcess(256, [&] {
+        float expected = 0.f;
+        for (int i = 0; i < 3; ++i) {
+            expected += gens[i].generate(SAMPLE_TIME, dsp::FREQ_C4, 0.f);
+        }
+
+        if (expected > 1.f)
+            expected = 1.f;
+        if (expected < -1.f)
+            expected = -1.f;
+
+        expected *= 5.f;
+
+        float actual = spider->getOutput(Spider::AUDIO_OUTPUT).getVoltage();
+        REQUIRE_THAT(actual, WithinAbs(expected, 0.000001));
+    });
+}
+
+TEST_CASE_METHOD(SpiderFixture, "Frequency parameter varies operator frequency correctly", "[Integration]") {
+    int op = GENERATE(0, 1, 2, 3, 4, 5);
+
+    spider->getParam(Spider::LEVEL_PARAMS + op).setValue(1.f);
+    spider->carriers[op] = true;
+
+    float freqParam = GENERATE(take(4, random(-80.f, 80.f)));
+    spider->getParam(Spider::FREQ_PARAM).setValue(freqParam);
+
+    float expectedFreq = dsp::FREQ_C4 * dsp::exp2_taylor5(freqParam / 12.f);
+
+    doProcess(256, [&] {
+        float freq = spider->freqs[op];
+        REQUIRE_THAT(freq, WithinAbs(expectedFreq, 0.000001));
+    });
+}
+
+TEST_CASE_METHOD(SpiderFixture, "Monophonic 1/VOct input varies operator frequency correctly", "[Integration]") {
+    int op = GENERATE(0, 1, 2, 3, 4, 5);
+
+    spider->getParam(Spider::LEVEL_PARAMS + op).setValue(1.f);
+    spider->carriers[op] = true;
+
+    float pitchInput = GENERATE(take(4, random(0.f, 10.f)));
+    spider->getInput(Spider::VOCT_INPUT).setVoltage(pitchInput);
+
+    float expectedFreq = dsp::FREQ_C4 * dsp::exp2_taylor5(pitchInput);
+
+    doProcess(256, [&] {
+        float freq = spider->freqs[op];
+        REQUIRE_THAT(freq, WithinAbs(expectedFreq, 0.000001));
+    });
+}
+
+TEST_CASE_METHOD(SpiderFixture, "Polyphonic 1V/Oct input sets channels") {
+    int channels = GENERATE(range(1, 16));
+
+    // UNSTABLE API but setChannels() checks for whether the port is connected and we're faking it...
+    spider->getInput(Spider::VOCT_INPUT).channels = channels;
+
+    doProcess(1, [&] {
+        REQUIRE(spider->channels == channels);
+    });
+}
+
+TEST_CASE_METHOD(SpiderFixture, "Polyphonic 1V/Oct input varies operator frequency correctly", "[Integration]") {
+    int op = GENERATE(0, 1, 2, 3, 4, 5);
+    int channels = GENERATE(range(2, 16));
+
+    spider->getParam(Spider::LEVEL_PARAMS + op).setValue(1.f);
+    spider->carriers[op] = true;
+
+    std::vector<float> expectedFreqs(channels);
+
+    // UNSTABLE API but setChannels() checks for whether the port is connected and we're faking it...
+    spider->getInput(Spider::VOCT_INPUT).channels = channels;
+    for (int i = 0; i < channels; ++i) {
+        float pitchInput = GENERATE(take(4, random(0.f, 10.f)));
+        spider->getInput(Spider::VOCT_INPUT).setVoltage(pitchInput, i);
+
+        expectedFreqs[i] = dsp::FREQ_C4 * dsp::exp2_taylor5(pitchInput);
+    }
+
+    doProcess(256, [&] {
+        for (int i = 0; i < channels; ++i) {
+            float freq = spider->freqs[op * channels + i];
+            REQUIRE_THAT(freq, WithinAbs(expectedFreqs[i], 0.000001));
+        }
+    });
+}
 
 TEST_CASE_METHOD(SpiderFixture, "Pitch shift varies operator frequency correctly", "[Integration]") {
     int op = GENERATE(0, 1, 2, 3, 4, 5);
 
-    // Enable operator so its process func actually runs
     spider->getParam(Spider::LEVEL_PARAMS + op).setValue(1.f);
     spider->carriers[op] = true;
 
@@ -223,7 +322,7 @@ TEST_CASE_METHOD(SpiderFixture, "Level varies operator level correctly", "[Integ
     }
 }
 
-TEST_CASE_METHOD(SpiderFixture, "Waveform varies operator waveform correctly", "[Integration]") {
+TEST_CASE_METHOD(SpiderFixture, "Waveform blend varies operator waveform correctly", "[Integration]") {
     int op = GENERATE(0, 1, 2, 3, 4, 5);
 
     spider->getParam(Spider::LEVEL_PARAMS + op).setValue(1.f);
@@ -332,6 +431,8 @@ TEST_CASE_METHOD(SpiderFixture, "Random combination of parameters varies operato
     });
 }
 
+// TODO: Polyphony tests
+
 TEST_CASE_METHOD(SpiderFixture, "Frequency modulation of operator signals yields correct frequencies",
                  "[Integration]") {
     int op1 = GENERATE(0, 1, 2, 3, 4, 5);
@@ -357,6 +458,151 @@ TEST_CASE_METHOD(SpiderFixture, "Frequency modulation of operator signals yields
         float op1Freq = spider->freqs[op1];
 
         float expectedOp2Signal = op2level * gen.generate(SAMPLE_TIME, dsp::FREQ_C4, 0.f);
+
+        float expectedFreq = dsp::FREQ_C4 + 5.f * dsp::FREQ_C4 * expectedOp2Signal;
+        REQUIRE_THAT(op1Freq, WithinAbs(expectedFreq, 0.0001));
+    });
+}
+
+TEST_CASE_METHOD(SpiderFixture, "Frequency modulation with zero depth does not affect carrier frequency",
+                 "[Integration]") {
+    int op1 = GENERATE(0, 1, 2, 3, 4, 5);
+    int op2 = GENERATE(0, 1, 2, 3, 4, 5);
+
+    if (op1 == op2)
+        return;
+
+    spider->carriers[op1] = true;
+
+    float op1level = 1.f;
+    float op2level = 0.f;
+
+    spider->getParam(Spider::LEVEL_PARAMS + op1).setValue(op1level);
+    spider->getParam(Spider::LEVEL_PARAMS + op2).setValue(op2level);
+
+    spider->algorithmGraph.addEdge(op2, op1);
+    spider->topologicalOrder = spider->algorithmGraph.topologicalSort();
+
+    doProcess(512, [&] {
+        float op1Freq = spider->freqs[op1];
+        float expectedFreq = dsp::FREQ_C4;
+        REQUIRE_THAT(op1Freq, WithinAbs(expectedFreq, 0.0001));
+    });
+}
+
+TEST_CASE_METHOD(SpiderFixture, "Frequency modulation in polyphonic mode yields correct frequencies", "[Integration]") {
+    int op1 = GENERATE(0, 1, 2, 3, 4, 5);
+    int op2 = GENERATE(0, 1, 2, 3, 4, 5);
+
+    int channels = random(2, 16).get();
+
+    if (op1 == op2)
+        return;
+
+    spider->carriers[op1] = true;
+
+    float op1level = 1.f;
+    float op2level = 1.f;
+
+    spider->getInput(Spider::VOCT_INPUT).channels = channels;
+
+    std::vector<float> expectedFreqs(channels);
+
+    for (int i = 0; i < channels; ++i) {
+        float pitchInput = random(0.f, 10.f).get();
+        spider->getInput(Spider::VOCT_INPUT).setVoltage(pitchInput, i);
+
+        expectedFreqs[i] = dsp::FREQ_C4 * dsp::exp2_taylor5(pitchInput);
+    }
+
+    spider->getParam(Spider::LEVEL_PARAMS + op1).setValue(op1level);
+    spider->getParam(Spider::LEVEL_PARAMS + op2).setValue(op2level);
+
+    spider->algorithmGraph.addEdge(op2, op1);
+    spider->topologicalOrder = spider->algorithmGraph.topologicalSort();
+
+    std::vector<SpiderSignalGenerator> gens(channels);
+
+    doProcess(512, [&] {
+        for (int i = 0; i < channels; ++i) {
+            float op1Freq = spider->freqs[op1 * channels + i];
+
+            float expectedOp2Signal = op2level * gens[i].generate(SAMPLE_TIME, expectedFreqs[i], 0.f);
+
+            float expectedFreq = expectedFreqs[i] + 5.f * expectedFreqs[i] * expectedOp2Signal;
+            REQUIRE_THAT(op1Freq, WithinAbs(expectedFreq, 0.0001));
+        }
+    });
+}
+
+TEST_CASE_METHOD(SpiderFixture, "Frequency modulation with non-sine signals yields correct carrier frequencies",
+                 "[Integration]") {
+    int op1 = GENERATE(0, 1, 2, 3, 4, 5);
+    int op2 = GENERATE(0, 1, 2, 3, 4, 5);
+
+    if (op1 == op2)
+        return;
+
+    spider->carriers[op1] = true;
+
+    float op1level = 1.f;
+    float op2level = 0.f;
+
+    float op1Wave = GENERATE(take(4, random(0.f, 1.f)));
+    float op2Wave = GENERATE(take(4, random(0.f, 1.f)));
+
+    spider->getParam(Spider::LEVEL_PARAMS + op1).setValue(op1level);
+    spider->getParam(Spider::LEVEL_PARAMS + op2).setValue(op2level);
+
+    spider->getParam(Spider::WAVE_PARAMS + op2).setValue(op1Wave);
+    spider->getParam(Spider::WAVE_PARAMS + op2).setValue(op2Wave);
+
+    spider->algorithmGraph.addEdge(op2, op1);
+    spider->topologicalOrder = spider->algorithmGraph.topologicalSort();
+
+    SpiderSignalGenerator gen;
+
+    doProcess(512, [&] {
+        float op1Freq = spider->freqs[op1];
+
+        float expectedOp2Signal = op2level * gen.generate(SAMPLE_TIME, dsp::FREQ_C4, op2Wave);
+
+        float expectedFreq = dsp::FREQ_C4 + 5.f * dsp::FREQ_C4 * expectedOp2Signal;
+        REQUIRE_THAT(op1Freq, WithinAbs(expectedFreq, 0.0001));
+    });
+}
+
+TEST_CASE_METHOD(SpiderFixture, "Frequency modulation with different sample rates yields correct carrier frequencies",
+                 "[Integration]") {
+    int op1 = GENERATE(0, 1, 2, 3, 4, 5);
+    int op2 = GENERATE(0, 1, 2, 3, 4, 5);
+    int rate = GENERATE(44100, 48000, 768000);
+
+    sampleRate = rate;
+
+    if (op1 == op2)
+        return;
+
+    spider->carriers[op1] = true;
+
+    float op1level = 1.f;
+    float op2level = 0.f;
+
+    float op1Wave = GENERATE(take(4, random(0.f, 1.f)));
+    float op2Wave = GENERATE(take(4, random(0.f, 1.f)));
+
+    spider->getParam(Spider::LEVEL_PARAMS + op1).setValue(op1level);
+    spider->getParam(Spider::LEVEL_PARAMS + op2).setValue(op2level);
+
+    spider->algorithmGraph.addEdge(op2, op1);
+    spider->topologicalOrder = spider->algorithmGraph.topologicalSort();
+
+    SpiderSignalGenerator gen;
+
+    doProcess(512, [&] {
+        float op1Freq = spider->freqs[op1];
+
+        float expectedOp2Signal = op2level * gen.generate(1.f / sampleRate, dsp::FREQ_C4, 0.f);
 
         float expectedFreq = dsp::FREQ_C4 + 5.f * dsp::FREQ_C4 * expectedOp2Signal;
         REQUIRE_THAT(op1Freq, WithinAbs(expectedFreq, 0.0001));
