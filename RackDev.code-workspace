@@ -111,7 +111,9 @@
 			"xloctime": "cpp",
 			"xmemory": "cpp",
 			"xtr1common": "cpp",
-			"*.inc": "cpp"
-		}
+			"*.inc": "cpp",
+			"csignal": "cpp"
+		},
+		"editor.formatOnSave": true
 	}
 }

@@ -11,7 +11,7 @@ LDFLAGS += #-L$(RACK_DIR)/dep/lib -lCatch2
 
 # Add .cpp files to the build
 # TODO: strip tests from non-debug builds
-SOURCES += $(wildcard src/*.cpp) $(wildcard tests/*.cpp)
+SOURCES += $(wildcard src/*.cpp)
 
 # Add files to the ZIP package when running `make dist`
 # The compiled plugin and "plugin.json" are automatically added.
@@ -19,5 +19,14 @@ DISTRIBUTABLES += res
 DISTRIBUTABLES += $(wildcard LICENSE*)
 DISTRIBUTABLES += $(wildcard presets)
 
+
+ifneq ($(filter tests,$(MAKECMDGOALS)),)
+    SOURCES += $(wildcard tests/*.cpp)
+    CXXFLAGS += -DPH_UNIT_TESTS -Itests
+endif
+
 # Include the Rack plugin Makefile framework
 include $(RACK_DIR)/plugin.mk
+
+# Catch2 unit test target
+tests: all

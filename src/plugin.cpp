@@ -5,6 +5,7 @@ Plugin* pluginInstance;
 void init(Plugin* p) {
     ph::initSinTable();
     pluginInstance = p;
+    
     p->addModel(modelPostHumanSpider);
 }
 

@@ -73,6 +73,45 @@
       ]
     },
     {
+      "label": "Build plugin with unit tests",
+      "type": "shell",
+      "command": "make tests -j24",
+      "options": {
+        "cwd": "${workspaceRoot}",
+        "env": {
+          "RACK_DIR": "${workspaceRoot}/../../",
+          "RACK_USER_DIR": "${workspaceRoot}/../../"
+        },
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared"
+      },
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": [
+          "absolute"
+        ],
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      },
+      "dependsOn": [
+        "Build VCV Rack"
+      ]
+    },
+    {
       "label": "Clean plugin",
       "type": "shell",
       "command": "make clean",
