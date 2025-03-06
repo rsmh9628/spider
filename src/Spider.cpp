@@ -2,9 +2,6 @@
 #include "DirectedGraph.hpp"
 #include "Components.hpp"
 
-#include <iostream>
-#include <iomanip>
-
 #include "SignalGenerator.hpp"
 
 #include <array>
@@ -30,6 +27,7 @@ struct Spider : Module {
         ENUMS(PITCH_CV_PARAMS, OPERATOR_COUNT),
         ENUMS(LEVEL_PARAMS, OPERATOR_COUNT),
         ENUMS(LEVEL_CV_PARAMS, OPERATOR_COUNT),
+        ENUMS(FEEDBACK_PARAMS, OPERATOR_COUNT),
         FREQ_PARAM,
         PARAMS_LEN
     };
@@ -69,6 +67,7 @@ struct Spider : Module {
             configParam(LEVEL_CV_PARAMS + op, -1.f, 1.f, 0.f, "Operator " + opStr + " level CV", "%", 0.f, 100.f, 0.f);
             configParam(WAVE_CV_PARAMS + op, -1.f, 1.f, 0.f, "Operator " + opStr + " waveform blend CV", "%", 0.f,
                         100.f, 0.f);
+            configParam(FEEDBACK_PARAMS + op, 0.f, 1.f, 0.f, "Operator " + opStr + " feedback", "%", 0.f, 100.f);
 
             configInput(PITCH_INPUTS + op, "Operator " + opStr + " fine pitch");
             configInput(LEVEL_INPUTS + op, "Operator " + opStr + " level");
@@ -187,9 +186,14 @@ struct Spider : Module {
     }
 
     void process(const ProcessArgs& args) override {
-        channels = std::max(1, getInput(VOCT_INPUT).getChannels());
+        int newChannels = std::max(1, getInput(VOCT_INPUT).getChannels());
 
-        freqs.resize(OPERATOR_COUNT * channels);
+        if (channels != newChannels) {
+            channels = newChannels;
+            freqs.resize(OPERATOR_COUNT * channels);
+            outs.resize(OPERATOR_COUNT * channels);
+            oldOuts.resize(OPERATOR_COUNT * channels);
+        }
 
         for (int op = 0; op < OPERATOR_COUNT; ++op) {
             for (int c = 0; c < channels; c++) {
@@ -224,7 +228,6 @@ struct Spider : Module {
     }
 
     void processOperators(const ProcessArgs& args) {
-        outs.resize(OPERATOR_COUNT * channels);
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
             int op = topologicalOrder[i];
             processOperator(op, args);
@@ -259,6 +262,8 @@ struct Spider : Module {
         float wavePos = wavePosParam + (wavePosCv * wavePosInput);
         wavePos = clamp(wavePos, 0.f, 1.f);
 
+        float feedbackParam = getParam(FEEDBACK_PARAMS + op).getValue();
+
         const auto& modulators = algorithmGraph.getAdjacentVerticesRev(op);
 
         for (int c = 0; c < channels; c++) {
@@ -267,7 +272,7 @@ struct Spider : Module {
             freq *= dsp::exp2_taylor5(octaveShift);                    // +- 12 semitones coarse pitch
             freq *= dsp::exp2_taylor5(pitchShiftInput * pitchShiftCv); // +-12 semitones pitch shift
 
-            // Resize buffer whenever samplesPerCycle changes
+            // resize buffer whenever samplesPerCycle changes
             int samplesPerCycle = (args.sampleRate / freq);
 
             for (int mod : modulators) {
@@ -275,8 +280,15 @@ struct Spider : Module {
                 freq += 5.f * modFreq * outs[mod * channels + c];
             }
 
+            float old0 = outs[op * channels + c];
+            float old1 = oldOuts[op * channels + c];
+
+            float avgOldSample = (old0 + old1) / 2;
+
+            float feedback = 5.f * feedbackParam * avgOldSample;
+
             outs[op * channels + c] =
-                level * signalGenerators[op * MAX_CHANNEL_COUNT + c].generate(args.sampleTime, freq, wavePos);
+                level * signalGenerators[op * MAX_CHANNEL_COUNT + c].generate(args.sampleTime, freq, wavePos, feedback);
 
             if (c == 0) {
                 if (bufferIndex[op] < BUFFER_SIZE) { // Capture only one period
@@ -342,6 +354,7 @@ struct Spider : Module {
 
     void setCarrierLights() {
         for (int i = 0; i < OPERATOR_COUNT; ++i) {
+
             getLight(SELECT_LIGHTS + i * 3).setBrightness(carriers[i] ? 1.0f : 0.0f);
         }
     }
@@ -397,7 +410,10 @@ struct Spider : Module {
     std::array<SpiderSignalGenerator, OPERATOR_COUNT * 16> signalGenerators;
     std::vector<float> freqs;
     std::vector<float> outs;
-    int channels = 1;
+
+    // Store previous samples to calculate operator feedback
+    std::vector<float> oldOuts;
+    int channels = -1;
 
     // only one channel is needed for the buffers
     // point buffer for the scope displays
@@ -558,8 +574,9 @@ struct SpiderWidget : ModuleWidget {
                 createParamCentered<AttenuatorKnob>(wavePositions[i].cvParamPos, module, Spider::WAVE_CV_PARAMS + i));
             addInput(createInputCentered<HexJack>(wavePositions[i].inputPos, module, Spider::WAVE_INPUTS + i));
 
-            addParam(createParamCentered<HexButton>(opSelectorPositions[i], module, Spider::SELECT_PARAMS + i));
-            addChild(createHexLight(opSelectorPositions[i], module, Spider::SELECT_LIGHTS + i * 3, i));
+            addParam(createParamCentered<PushKnob>(opSelectorPositions[i], module, Spider::FEEDBACK_PARAMS + i));
+            addParam(createParamCentered<OperatorButton>(opSelectorPositions[i], module, Spider::SELECT_PARAMS + i));
+            addChild(createOperatorLight(opSelectorPositions[i], module, Spider::SELECT_LIGHTS + i * 3, i));
 
             if (module) {
                 for (int j = 0; j < OPERATOR_COUNT; ++j) {

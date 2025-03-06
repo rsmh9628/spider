@@ -167,6 +167,10 @@ public:
 
     std::vector<std::vector<T>> adjList;
     std::vector<std::vector<T>> reverseAdjList;
+
+    bool operator==(const DirectedGraph<T>& other) const {
+        return adjList == other.adjList && reverseAdjList == other.reverseAdjList;
+    }
 };
 
 } // namespace ph

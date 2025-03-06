@@ -37,7 +37,7 @@ struct ConnectionLight : ModuleLightWidget {
 
     void drawBackground(const Widget::DrawArgs& args) override {
         NVGcolor strokeColour = nvgRGB(30, 30, 30);
-        
+
         drawDottedLine(args.vg, [strokeColour](NVGcontext* vg, int, int, Vec pos) {
             nvgBeginPath(vg);
             nvgCircle(vg, pos.x, pos.y, 1.5f);
@@ -70,12 +70,12 @@ struct ConnectionLight : ModuleLightWidget {
     }
 
     void drawHalo(const Widget::DrawArgs& args) override {
-        if (args.fb) 
+        if (args.fb)
             return;
-        
+
         if (rack::settings::haloBrightness <= 0.0f)
             return;
-        
+
         drawDottedLine(args.vg, [this](NVGcontext* vg, int i, int numDots, Vec pos) {
             nvgBeginPath(vg);
             nvgCircle(vg, pos.x, pos.y, 8.0f);
@@ -92,7 +92,8 @@ struct ConnectionLight : ModuleLightWidget {
             auto segmentColour = OPERATOR_COLOURS[op];
             segmentColour.a = getLight(0)->getBrightness() * dotAlpha * rack::settings::haloBrightness;
 
-            NVGpaint paint = nvgRadialGradient(vg, pos.x, pos.y, 2.0f, 8.0f, segmentColour, nvgRGBAf(0.f, 0.f, 0.f, 0.f));
+            NVGpaint paint =
+                nvgRadialGradient(vg, pos.x, pos.y, 2.0f, 8.0f, segmentColour, nvgRGBAf(0.f, 0.f, 0.f, 0.f));
             nvgFillPaint(vg, paint);
             nvgFill(vg);
         });
@@ -103,7 +104,7 @@ struct ConnectionLight : ModuleLightWidget {
 
         std::vector<Vec> positions;
         float distance = std::sqrt(std::pow(end.x - start.x, 2) + std::pow(end.y - start.y, 2));
-        int numDots = static_cast<int>(distance / dotSpacing); 
+        int numDots = static_cast<int>(distance / dotSpacing);
         float dx = (end.x - start.x) / numDots;
         float dy = (end.y - start.y) / numDots;
 
@@ -121,7 +122,7 @@ struct ConnectionLight : ModuleLightWidget {
 
         std::vector<Vec> positions;
         float distance = std::sqrt(std::pow(end.x - start.x, 2) + std::pow(end.y - start.y, 2));
-        int numDots = static_cast<int>(distance / dotSpacing); 
+        int numDots = static_cast<int>(distance / dotSpacing);
         float dx = (end.x - start.x) / numDots;
         float dy = (end.y - start.y) / numDots;
 
@@ -196,15 +197,20 @@ ConnectionLight* createConnectionLight(Vec p0, Vec p1, Module* module, int first
 }
 
 struct HexJack : SvgPort {
-    HexJack() {
-        setSvg(Svg::load(asset::plugin(pluginInstance, "res/HexJack.svg")));
-    }
+    HexJack() { setSvg(Svg::load(asset::plugin(pluginInstance, "res/HexJack.svg"))); }
 };
 
 struct ShinyKnob : RoundKnob {
     ShinyKnob() {
         setSvg(Svg::load(asset::plugin(pluginInstance, "res/ShinyKnob.svg")));
         bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/ShinyKnob_bg.svg")));
+    }
+};
+
+struct PushKnob : RoundKnob {
+    PushKnob() {
+        setSvg(Svg::load(asset::plugin(pluginInstance, "res/PushKnob.svg")));
+        bg->setSvg(Svg::load(asset::plugin(pluginInstance, "res/PushKnob_bg.svg")));
     }
 };
 
@@ -222,58 +228,42 @@ struct AttenuatorKnob : Trimpot {
     }
 };
 
-struct HexLight : GrayModuleLightWidget {
-    HexLight(Vec pos, int op) {
+struct OperatorLight : GrayModuleLightWidget {
+    OperatorLight(Vec pos, int op) {
         this->box.pos = pos - Vec(radius, radius);
         this->addBaseColor(OPERATOR_COLOURS[op]);
         this->addBaseColor(nvgRGB(255, 255, 255));
         this->addBaseColor(nvgRGB(255, 0, 0));
-        this->box.size = Vec(20, 20);
+        this->box.size = Vec(16, 16);
     }
 
     void drawBackground(const Widget::DrawArgs& args) override {}
 
     void drawLight(const Widget::DrawArgs& args) override {
         if (color.a > 0.0) {
-            drawHexagon(args);
-
-            nvgStrokeColor(args.vg, color);
-            nvgStrokeWidth(args.vg, 1.f);
-            nvgStroke(args.vg);
+            nvgBeginPath(args.vg);
+            nvgCircle(args.vg, radius, radius, radius);
+            nvgFillColor(args.vg, this->color);
+            nvgFill(args.vg);
         }
     }
 
-    void drawHexagon(const Widget::DrawArgs& args) {
-        nvgBeginPath(args.vg);
-        for (int i = 0; i < 6; i++) {
-            float angle = M_PI / 3.0 * i;
-            float x = radius + radius * cos(angle);
-            float y = radius + radius * sin(angle);
-            if (i == 0) {
-                nvgMoveTo(args.vg, x, y);
-            } else {
-                nvgLineTo(args.vg, x, y);
-            }
-        }
-        nvgClosePath(args.vg);
-    }
-
-    float radius = 10.f;
+    float radius = 8.f;
 };
 
-HexLight* createHexLight(Vec pos, Module* module, int firstLightId, int op) {
-    auto* light = new HexLight(pos, op);
+OperatorLight* createOperatorLight(Vec pos, Module* module, int firstLightId, int op) {
+    auto* light = new OperatorLight(pos, op);
     light->module = module;
     light->firstLightId = firstLightId;
     return light;
 }
 
-struct HexButton : app::SvgSwitch {
-	HexButton() {
-		momentary = true;
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/HexButton_0.svg")));
-		addFrame(Svg::load(asset::plugin(pluginInstance, "res/HexButton_1.svg")));
-	}
+struct OperatorButton : app::SvgSwitch {
+    OperatorButton() {
+        momentary = true;
+        addFrame(Svg::load(asset::plugin(pluginInstance, "res/OperatorButton_0.svg")));
+        addFrame(Svg::load(asset::plugin(pluginInstance, "res/OperatorButton_1.svg")));
+    }
 };
 
 } // namespace ph

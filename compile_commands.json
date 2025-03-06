@@ -1,0 +1,52 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-Wsuggest-override",
+      "-std=c++17",
+      "-fPIC",
+      "-I../../include",
+      "-I../../dep/include",
+      "-g",
+      "-funsafe-math-optimizations",
+      "-fno-omit-frame-pointer",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-march=nehalem",
+      "-c",
+      "-o",
+      "build/src/Spider.cpp.o",
+      "src/Spider.cpp"
+    ],
+    "directory": "/home/rhughes/git/rack-catch2/plugins/comp30040-vcv-rack-fm-plugin",
+    "file": "/home/rhughes/git/rack-catch2/plugins/comp30040-vcv-rack-fm-plugin/src/Spider.cpp",
+    "output": "/home/rhughes/git/rack-catch2/plugins/comp30040-vcv-rack-fm-plugin/build/src/Spider.cpp.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-std=c++17",
+      "-Wsuggest-override",
+      "-std=c++17",
+      "-fPIC",
+      "-I../../include",
+      "-I../../dep/include",
+      "-g",
+      "-funsafe-math-optimizations",
+      "-fno-omit-frame-pointer",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-march=nehalem",
+      "-c",
+      "-o",
+      "build/src/plugin.cpp.o",
+      "src/plugin.cpp"
+    ],
+    "directory": "/home/rhughes/git/rack-catch2/plugins/comp30040-vcv-rack-fm-plugin",
+    "file": "/home/rhughes/git/rack-catch2/plugins/comp30040-vcv-rack-fm-plugin/src/plugin.cpp",
+    "output": "/home/rhughes/git/rack-catch2/plugins/comp30040-vcv-rack-fm-plugin/build/src/plugin.cpp.o"
+  }
+]

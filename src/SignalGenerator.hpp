@@ -24,7 +24,7 @@ inline float normalisePhase(float phase) {
 }
 
 struct SpiderSignalGenerator {
-    float generate(float sampleTime, float freq, float wavePos) {
+    float generate(float sampleTime, float freq, float wavePos, float phaseMod = 0) {
         phase += freq * sampleTime;
 
         if (phase > 1.f)
@@ -32,15 +32,17 @@ struct SpiderSignalGenerator {
         if (phase < -1.f)
             phase += 1.f;
 
+        float normalisedPM = normalisePhase(phase + (phaseMod / (2 * M_PI)));
+        float PM = phase + phaseMod / (2 * M_PI);
         float blend = 0.f;
         if (wavePos <= 0.25f) {
-            blend = crossfade(sin2pi(normalisePhase(phase)), triangle(phase), wavePos / 0.25f);
+            blend = crossfade(sin2pi(normalisedPM), triangle(phase), wavePos / 0.25f);
         } else if (wavePos <= 0.5f) {
-            blend = crossfade(triangle(phase), saw(phase), (wavePos - 0.25f) / 0.25f);
+            blend = crossfade(triangle(PM), saw(PM), (wavePos - 0.25f) / 0.25f);
         } else if (wavePos <= 0.75f) {
-            blend = crossfade(saw(phase), square(phase), (wavePos - 0.5f) / 0.25f);
+            blend = crossfade(saw(PM), square(PM), (wavePos - 0.5f) / 0.25f);
         } else {
-            blend = crossfade(square(phase), sin2pi(phase), (wavePos - 0.75f) / 0.25f);
+            blend = crossfade(square(PM), sin2pi(normalisedPM), (wavePos - 0.75f) / 0.25f);
         }
 
         return blend;

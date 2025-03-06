@@ -689,6 +689,24 @@ TEST_CASE_METHOD(SpiderFixture, "Frequency modulation from multiple modulators o
     });
 }
 
+TEST_CASE_METHOD(SpiderFixture, "Module state is correctly preserved", "[JSON]") {
+    spider->model = modelPostHumanSpider;
+    spider->algorithmGraph.addEdge(1, 0);
+    spider->algorithmGraph.addEdge(2, 1);
+    spider->topologicalOrder = spider->algorithmGraph.topologicalSort();
+    spider->carriers[0] = true;
+
+    json_t* state = spider->toJson();
+
+    auto newSpider = std::make_unique<Spider>();
+    newSpider->model = modelPostHumanSpider;
+    newSpider->fromJson(state);
+
+    REQUIRE(newSpider->algorithmGraph == spider->algorithmGraph);
+    REQUIRE(newSpider->carriers == spider->carriers);
+    REQUIRE(newSpider->topologicalOrder == spider->topologicalOrder);
+}
+
 } // namespace ph
 
 #endif // PH_TEST_SPIDER_HPP
