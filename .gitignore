@@ -1,2 +1,13 @@
-plugin.so
+# Artefacts
+*.dll
+*.so
 build/
+compile_commands.json
+
+# Vscode
+.vscode/
+*.code-workspace
+
+# Clangd
+.cache/
+compile_commands.json
