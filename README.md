@@ -1,6 +1,6 @@
 # Spider
 
-Spider is a 6-operator FM synthesiser module for [VCV Rack](https://vcvrack.com/) featuring fully customisable FM algorithm routing.
+Spider is a 6-operator FM synthesiser module for [VCV Rack](https://vcvrack.com/) featuring fully customisable modulation routing.
 
 ## Installation
 
