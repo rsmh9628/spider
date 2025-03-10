@@ -1,7 +1,0 @@
-CompileFlags:
-  Add:
-    - "-I/../../"
-    - "-I/../../dep/Catch2/extras/"
-    - "-I/usr/include"
-    - "-D_PHUNIT_TESTS"
-
