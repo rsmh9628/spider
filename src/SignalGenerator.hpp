@@ -27,6 +27,7 @@ struct SpiderSignalGenerator {
     float generate(float sampleTime, float freq, float wavePos, float phaseMod = 0) {
         phase += freq * sampleTime;
 
+        phase = fmod(phase, 1.f);
         if (phase > 1.f)
             phase -= 1.f;
         if (phase < -1.f)

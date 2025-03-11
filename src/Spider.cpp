@@ -402,8 +402,6 @@ struct Spider : Module {
         topologicalOrder = algorithmGraph.topologicalSort();
         setConnectionLights();
 
-        reset();
-
         Module::onRandomize();
     }
 
