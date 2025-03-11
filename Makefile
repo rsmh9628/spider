@@ -2,7 +2,11 @@
 RACK_DIR ?= ../..
 
 # FLAGS will be passed to both the C and C++ compiler
-FLAGS += -std=c++17
+ifneq ($(filter tests,$(MAKECMDGOALS)),)
+	FLAGS += -std=c++17
+else
+	FLAGS += -std=c++11
+endif
 CFLAGS +=
 
 # Careful about linking to shared libraries, since you can't assume much about the user's environment and library search path.
@@ -10,7 +14,6 @@ CFLAGS +=
 LDFLAGS += #-L$(RACK_DIR)/dep/lib -lCatch2
 
 # Add .cpp files to the build
-# TODO: strip tests from non-debug builds
 SOURCES += $(wildcard src/*.cpp)
 
 # Add files to the ZIP package when running `make dist`
@@ -18,7 +21,6 @@ SOURCES += $(wildcard src/*.cpp)
 DISTRIBUTABLES += res
 DISTRIBUTABLES += $(wildcard LICENSE*)
 DISTRIBUTABLES += $(wildcard presets)
-
 
 ifneq ($(filter tests,$(MAKECMDGOALS)),)
     SOURCES += $(wildcard tests/*.cpp)
