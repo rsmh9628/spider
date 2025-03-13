@@ -19,14 +19,15 @@ void initSinTable() {
 }
 
 float sin2pi(float x) {
-    if (x < 0.f)
-        x = 0;
-    if (x > 1.f)
-        x = 1;
-
     x *= TABLE_SIZE;
     int i = (int)x;
+    if (i < 0) {
+        i = 0;
+    } else if (i >= TABLE_SIZE - 1) {
+        i = TABLE_SIZE - 1;
+    }
     float f = x - i;
     return (1.0f - f) * sinTable[i] + f * sinTable[(i + 1) % TABLE_SIZE];
 }
+
 } // namespace ph
