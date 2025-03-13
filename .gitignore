@@ -3,6 +3,7 @@
 *.so
 build/
 compile_commands.json
+dist/
 
 # Vscode
 .vscode/
