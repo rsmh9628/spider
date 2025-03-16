@@ -1,22 +1,23 @@
 {
-  "slug": "PostHuman-Spider-Beta-Test",
-  "name": "PostHuman Spider Beta Test",
-  "description": "Beta test plugin for PostHuman Spider",
+  "slug": "PostHuman"
+  "name": "PostHuman"
+  "description": "PostHuman plugin containing Spider"
   "version": "2.0.0",
-  "license": "proprietary",
+  "license": "MIT",
   "brand": "PostHuman",
   "author": "Ryan Hughes",
   "authorEmail": "",
   "authorUrl": "",
   "pluginUrl": "",
   "manualUrl": "",
-  "sourceUrl": "",
+  "sourceUrl": "https://github.com/rsmh9628/spider",
   "donateUrl": "",
   "changelogUrl": "",
   "modules": [
     {
       "slug": "PostHuman-Spider",
       "name": "Spider",
+      "keywords": "6-operator FM",
       "description": "6-operator FM synth",
       "tags": ["Oscillator", "Polyphonic"]
     }
